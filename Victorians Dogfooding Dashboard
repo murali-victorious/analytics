@@ -1,0 +1,68 @@
+-- SQL query for Victorians Dogfooding Dashboard. This dashboard shows sessions, DAU as well as time in app.
+-- 1st subquery is for user_id and 2nd is for device_id
+
+(
+select
+A.app,
+U.id,
+A.user_map_tag,
+U.name,
+A.date,
+A.sessions,
+A.session_starters,
+A.time_in_msec
+from
+(
+SELECT 
+app,
+user_map_tag,
+cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date,
+os
+,COUNT(*) AS sessions
+,COUNT(DISTINCT event.user_id) AS session_starters,
+SUM(float1) AS time_in_msec 
+FROM event event
+WHERE event."kingdom" LIKE 'session' 
+AND event."phylum" LIKE 'session_end'
+AND app in ('victorians')
+and user_map_tag like 'ut%'
+GROUP BY 1,2,3,4
+) A
+join vicky.users U
+on A.user_map_tag = ('ut'|| U.id)
+order by 2,5
+)
+UNION
+(
+select
+A.app,
+UU.id,
+A.user_map_tag,
+UU.name,
+A.date,
+A.sessions,
+A.session_starters,
+A.time_in_msec
+from
+(
+SELECT 
+app,
+user_map_tag,
+cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date,
+os
+,COUNT(*) AS sessions
+,COUNT(DISTINCT event.user_id) AS session_starters,
+SUM(float1) AS time_in_msec 
+FROM event event
+WHERE event."kingdom" LIKE 'session' 
+AND event."phylum" LIKE 'session_end'
+AND app in ('victorians')
+and user_map_tag like 'dt%'
+GROUP BY 1,2,3,4
+) A
+join vicky.device_login U
+on A.user_map_tag = ('dt'|| U.device_id)
+join vicky.users UU
+on U.login_id = UU.parent_login_id
+order by 2,5
+);
