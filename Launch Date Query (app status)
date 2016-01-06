@@ -6,13 +6,13 @@ create table public.launch_date as
 select
 app,
 os,
-case when app not like '%-%' THEN 'not_live' END as app_status,
+'not_live' as app_status, 
 date_trunc('day',min(event_datetime)) as launch_date
 from public.install
 INNER JOIN vicky.apps
 ON install.app=apps.redshift_app_name
-group by 1,2
-order by 1,2
+group by 1,2,3
+order by 1,2,3
 );
 
 
