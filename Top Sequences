@@ -1,0 +1,58 @@
+SELECT s.app_id
+, apps.name as app_name
+, s.created_by as user_id
+, users.name
+, s.category as category
+, s.id as sequence_id
+, s.name as sequence_content
+, CONVERT_TIMEZONE('UTC','US/Pacific',s.created_at) as created_at
+, sum(NVL(comments,0)) as comments
+, sum(NVL(likes,0)) as likes
+, sum(NVL(EBs,0)) as EBs
+, sum(NVL(poll_responses,0)) as poll_responses
+, sum(NVL(reposts,0)) as reposts
+FROM vicky.sequences s
+LEFT JOIN 
+(
+SELECT sequence_id, COUNT(*) as comments FROM vicky.comments
+WHERE is_moderated='no' AND is_complete='yes' AND is_deleted='no' GROUP BY 1
+) as A
+ON s.id=A.sequence_id
+
+LEFT JOIN 
+(
+SELECT sequence_id, COUNT(*) as likes from vicky.sequencelikes
+GROUP BY 1
+) as B
+ON s.id=B.sequence_id
+
+LEFT JOIN 
+(
+SELECT sequence_id, SUM(vote_count) as EBs from vicky.sequencevotes
+GROUP BY 1
+) as C
+ON s.id=C.sequence_id
+
+LEFT JOIN 
+(
+SELECT nodes.sequence_id, COUNT(*) as poll_responses FROM vicky.statinteractions si
+JOIN vicky.nodes
+ON si.node_id = nodes.id
+GROUP BY 1
+) as D
+ON s.id=D.sequence_id
+
+LEFT JOIN 
+(
+SELECT parent_sequence_id, COUNT(*) as reposts FROM vicky.sequencereposts
+GROUP BY 1
+) as E
+ON s.id=E.parent_sequence_id
+
+LEFT JOIN vicky.apps
+ON s.app_id=apps.id
+LEFT JOIN vicky.users
+ON s.created_by=users.id
+WHERE s.is_complete='yes' AND s.is_deleted='no' AND s.is_moderated='no'
+AND (comments>0 OR likes>0 OR EBs>=10 OR poll_responses>0 OR reposts>0)
+GROUP BY 1,2,3,4,5,6,7,8
