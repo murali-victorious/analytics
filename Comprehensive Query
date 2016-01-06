@@ -1,4 +1,5 @@
 -- Install
+
 create table public.comp_install as
 (
 SELECT 
@@ -12,7 +13,6 @@ FROM
 (SELECT ROW_NUMBER() OVER(PARTITION BY app, os, user_id ORDER BY event_datetime) as row_num
 , *
 FROM install
---where app in ('enchufetv','vetealaversh')
 ) A
 join public.launch_date L
 on A.app = L.app
@@ -40,33 +40,32 @@ FROM event as event
 INNER JOIN vicky.apps
 ON event.app=apps.redshift_app_name
 WHERE event."kingdom" LIKE 'registration'
---AND app in ('enchufetv','vetealaversh')
 GROUP BY 1,2,3,4
 );
 
 
 -- DAU
-
 create table public.comp_dau as
 (
 SELECT 
 dau.app 
 , cast(TO_CHAR(dau.local_datetime::DATE, 'YYYY-MM-DD') as date) as date
 , dau.os
+, apps.name as SQL_app_name
 , COUNT(DISTINCT dau.user_id) as dau 
 FROM 
 (SELECT ROW_NUMBER() OVER(PARTITION BY dau.app, dau.os, dau.user_id, dau.local_datetime::DATE ORDER BY dau.event_datetime) as row_num
 , *
 FROM dau
---WHERE app in ('enchufetv','vetealaversh')
 ) dau
 JOIN install
 on dau.app = install.app
 and dau.user_id = install.user_id
 and dau.event_datetime>=install.event_datetime
+INNER JOIN vicky.apps
+ON dau.app=apps.redshift_app_name
 WHERE row_num = 1
---AND install.app in ('enchufetv','vetealaversh')
-GROUP BY 1,2,3
+GROUP BY 1,2,3,4
 );
 
 
@@ -79,7 +78,6 @@ SELECT app, cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date,ev
 FROM event event 
 
 WHERE event."kingdom" LIKE 'engagement'
---AND app in ('enchufetv','vetealaversh')
 GROUP BY 1,2,3
 );
 
@@ -88,13 +86,16 @@ GROUP BY 1,2,3
 
 create table public.comp_view as
 (
-SELECT app, cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date,event."os",COUNT(*) AS views,COUNT(DISTINCT event.user_id) AS viewers, sum(case when event."class"='video' then 1 else 0 end) as video_views,
-count(distinct case when event."class"='video' then user_id else null end) as video_viewers
+SELECT app
+, cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date
+, event."os"
+, COUNT(*) AS views,COUNT(DISTINCT event.user_id) AS viewers
+, sum(case when event."class"='video' then 1 else 0 end) as video_views
+, count(distinct case when event."class"='video' then user_id else null end) as video_viewers
 FROM event event  
 
 WHERE event."kingdom" LIKE 'view'
 and event."phylum" LIKE 'start'
---AND app in ('enchufetv','vetealaversh') 
 GROUP BY 1,2,3
 );
 
@@ -110,7 +111,6 @@ FROM event event
 
 WHERE event."kingdom" LIKE 'tile_view'
 and event."phylum" LIKE 'start'
---AND app in ('enchufetv','vetealaversh') 
 GROUP BY 1,2,3
 );
 
@@ -156,7 +156,6 @@ SUM(float1) AS time_in_msec
 FROM event event
 WHERE event."kingdom" LIKE 'session' 
 AND event."phylum" LIKE 'session_end'
---AND app in ('enchufetv','vetealaversh')
 GROUP BY 1,2,3
 );
 
@@ -172,7 +171,6 @@ FROM event
 
 WHERE event."kingdom" LIKE 'engagement'
 and event."phylum" LIKE 'repost'
---AND app in ('enchufetv','vetealaversh')
 GROUP BY 1,2,3
 );
 
@@ -367,10 +365,12 @@ full outer join public.comp_registration B
 on A.date = B.date
 and A.app = B.app
 and A.os = B.os
+AND A.SQL_app_name=B.SQL_app_name
 full outer join public.comp_dau C
 on A.date = C.date
 and A.app = C.app
 and A.os = C.os
+AND A.SQL_app_name=C.SQL_app_name
 left join public.comp_engagement D
 ON C.app = D.app
 AND C.date = D.date
@@ -404,4 +404,5 @@ public.launch_date l
 on C.app=l.app
 and C.os=l.os
 and A.date>=l.launch_date
+WHERE l.app_status='live'
 ORDER BY 1,2,3,4;
