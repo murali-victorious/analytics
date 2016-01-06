@@ -1,0 +1,25 @@
+SELECT a.app_id
+, a.app_name
+, a.tag_id
+, a."tag"
+, (CASE 
+        WHEN a.category like '%image%' THEN 'image'
+        WHEN a.category like '%video%' THEN 'video'
+        WHEN a.category like '%poll%' THEN 'poll'
+        WHEN a.category LIKE '%text%' THEN 'text' ELSE 'stream' END) as media
+, a.category
+, COUNT(distinct a.user_id) as posters
+, COUNT(distinct a.id) as posts
+FROM
+(
+SELECT sequences.app_id, apps.name as app_name, sequences.id, st.tag_id, tags."tag", sequences.created_by as user_id, sequences.name, sequences.category
+FROM vicky.sequences 
+JOIN vicky.sequencetags st ON sequences.id=st.sequence_id 
+JOIN vicky.apps ON sequences.app_id=apps.id 
+LEFT JOIN vicky.tags ON st.tag_id=tags.id
+WHERE sequences.is_complete='yes' 
+AND is_moderated='no' 
+AND is_deleted='no'
+AND category NOT LIKE 'owner%'
+) a
+GROUP BY 1,2,3,4,5,6
