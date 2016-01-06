@@ -1,0 +1,55 @@
+SELECT
+apps.id as app_id,
+apps.name as app_name,
+users.id as user_id,
+users.name as user_name,
+CONVERT_TIMEZONE('UTC','US/Pacific',users.created_at) as created_at,
+nvl(emails.email,'') as email, 
+nvl(users.profile_location, '') as profile_location,
+SUM(nvl(creations,0)) as creations, 
+SUM(nvl(comments,0)) as comments,
+SUM(nvl(ballistics,0)) as ballistics,
+SUM(nvl(poll_responses,0)) as poll_responses,
+SUM(nvl(reposts,0)) as reposts,
+SUM(nvl(likes,0)) as likes 
+FROM vicky.users 
+
+LEFT JOIN vicky.apps
+ON users.app_id=apps.id
+
+LEFT JOIN 
+(SELECT login_id, email FROM vicky.victoriousaccounts va WHERE email NOT LIKE '%api' UNION
+SELECT login_id, email FROM vicky.facebookaccounts fa WHERE email NOT LIKE '%api') as emails
+ON users.parent_login_id=emails.login_id
+
+LEFT JOIN 
+(SELECT users.id as user_id, count(*) as creations FROM vicky.sequences 
+JOIN vicky.users ON sequences.created_by=users.id 
+WHERE users.access_level='api_user' and sequences.category not like '%stream%' and sequences.is_complete='yes' and sequences.is_moderated='no' and sequences.is_deleted='no'GROUP BY 1
+) A
+ON users.id=A.user_id
+
+LEFT JOIN
+(SELECT comments.user_id, COUNT(*) AS comments from vicky.comments 
+WHERE is_moderated='no' AND is_complete='yes' AND is_deleted='no' GROUP BY 1) as B
+ON users.id=B.user_id
+
+LEFT JOIN 
+(SELECT sequencevotes.user_id, SUM(sequencevotes.vote_count) AS ballistics FROM vicky.sequencevotes group by 1) as C
+ON users.id=C.user_id
+
+LEFT JOIN 
+(SELECT created_by, COUNT(*) AS reposts FROM vicky.sequences s 
+WHERE s.category LIKE '%_repost' AND s.is_complete='yes' AND s.is_moderated='no' AND s.is_deleted='no' GROUP BY 1) as D
+ON users.id=D.created_by
+
+LEFT JOIN 
+(SELECT user_id, COUNT(*) AS poll_responses FROM vicky.statinteractions GROUP BY 1) as E
+ON users.id=E.user_id
+
+LEFT JOIN 
+(SELECT user_id, COUNT(*) as likes from vicky.sequencelikes sl GROUP BY 1) as F
+ON users.id=F.user_id
+
+WHERE users.access_level='api_user'
+GROUP BY 1,2,3,4,5,6,7
