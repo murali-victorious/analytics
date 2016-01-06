@@ -1,0 +1,299 @@
+drop table public.launch_date;
+
+
+create table public.launch_date as
+(
+select
+app,
+os,
+case when app not like '%-%' THEN 'not_live' END as app_status,
+date_trunc('day',min(event_datetime)) as launch_date
+from public.install
+INNER JOIN vicky.apps
+ON install.app=apps.redshift_app_name
+group by 1,2
+order by 1,2
+);
+
+
+update public.launch_date
+set launch_date = '2014-09-10 00:00:00', app_status='live'
+where app in ('jesslizama');
+
+
+update public.launch_date
+set launch_date = '2014-10-13 00:00:00', app_status='live'
+where app in ('pwnisher');
+
+
+update public.launch_date
+set launch_date = '2014-11-04 00:00:00', app_status='live'
+where app in ('gtchannel');
+
+
+update public.launch_date
+set launch_date = '2014-11-17 00:00:00', app_status='live'
+where app in ('eatyourkimchi') and os in ('iOS');
+
+
+update public.launch_date
+set launch_date = '2015-03-18 00:00:00', app_status='live'
+where app in ('eatyourkimchi') and os in ('Android');
+
+
+update public.launch_date
+set launch_date = '2014-11-21 00:00:00', app_status='live'
+where app in ('glamlife') and os in ('iOS');
+
+
+update public.launch_date
+set launch_date = '2015-03-05 00:00:00', app_status='live'
+where app in ('glamlife') and os in ('Android');
+
+
+update public.launch_date
+set launch_date = '2015-04-08 00:00:00', app_status='live'
+where app in ('fitnessblend');
+
+
+update public.launch_date
+set launch_date = '2015-04-23 00:00:00', app_status='live'
+where app in ('ryanhiga','theyoungturks');
+
+
+update public.launch_date
+set launch_date = '2015-04-29 00:00:00', app_status='live'
+where app in ('nitrocircus');
+
+update public.launch_date
+set launch_date = '2015-04-30 00:00:00', app_status='live'
+where app in ('awesomenesstv');
+
+update public.launch_date
+set launch_date = '2015-05-18 00:00:00', app_status='live'
+where app in ('unicornisland');
+
+
+update public.launch_date
+set launch_date = '2015-05-20 00:00:00', app_status='live'
+where app in ('eleventhgorg');
+
+
+update public.launch_date
+set launch_date = '2015-06-09 00:00:00', app_status='live'
+where app in ('machinima');
+
+
+update public.launch_date
+set launch_date = '2015-06-18 00:00:00', app_status='live'
+where app in ('beingindian');
+
+
+update public.launch_date
+set launch_date = '2015-06-20 00:00:00', app_status='live'
+where app in ('alltime10s');
+
+
+update public.launch_date
+set launch_date = '2015-07-10 00:00:00', app_status='live'
+where app in ('clothesencount');
+
+
+update public.launch_date
+set launch_date = '2015-07-17 00:00:00', app_status='live'
+where app in ('strawberry17');
+
+
+update public.launch_date
+set launch_date = '2015-07-24 00:00:00', app_status='live'
+where app in ('alibrustofski');
+
+
+update public.launch_date
+set launch_date = '2015-07-29 00:00:00', app_status='live'
+where app in ('questcrew');
+
+
+update public.launch_date
+set launch_date = '2015-08-03 00:00:00', app_status='live'
+where app in ('meghanrienks');
+
+
+update public.launch_date
+set launch_date = '2015-08-25 00:00:00', app_status='live'
+where app in ('failarmy');
+
+
+update public.launch_date
+set launch_date = '2015-08-25 00:00:00', app_status='live'
+where app in ('mpgis');
+
+
+update public.launch_date
+set launch_date = '2015-08-27 00:00:00', app_status='live'
+where app in ('joeygraceffa');
+
+
+update public.launch_date
+set launch_date = '2015-08-28 00:00:00', app_status='live'
+where app in ('cartoonhangover');
+
+
+update public.launch_date
+set launch_date = '2015-09-04 00:00:00', app_status='live'
+where app in ('strskillschool');
+
+
+update public.launch_date
+set launch_date = '2015-09-11 00:00:00', app_status='live'
+where app in ('enchufetv');
+
+
+update public.launch_date
+set launch_date = '2015-09-14 00:00:00', app_status='live'
+where app in ('treepotatoes');
+
+
+update public.launch_date
+set launch_date = '2015-09-17 00:00:00', app_status='live'
+where app in ('hiphollywood');
+
+
+update public.launch_date
+set launch_date = '2015-09-18 00:00:00', app_status='live'
+where app in ('dangmattsmit');
+
+
+update public.launch_date
+set launch_date = '2015-09-22 00:00:00', app_status='live'
+where app in ('thepalmcakes');
+
+
+update public.launch_date
+set launch_date = '2015-09-23 00:00:00', app_status='live'
+where app in ('skizzfamily');
+
+
+update public.launch_date
+set launch_date = '2015-09-24 00:00:00', app_status='live'
+where app in ('lelepons','thehartland','wongfu','freestylefb');
+
+
+update public.launch_date
+set launch_date = '2015-09-26 00:00:00', app_status='live'
+where app in ('hectorlealvl');
+
+
+update public.launch_date
+set launch_date = '2015-09-28 00:00:00', app_status='live'
+where app in ('vetealaversh','wassabi','whatdafaqsho');
+
+
+update public.launch_date
+set launch_date = '2015-09-30 00:00:00', app_status='live'
+where app in ('jasminethomp','journeymanpi','desimpedidos','playcomedy','xtremevideo');
+
+update public.launch_date
+set launch_date = '2015-10-01 00:00:00', app_status='live'
+where app in ('drossrotzank');
+
+update public.launch_date
+set launch_date = '2015-10-04 00:00:00', app_status='live'
+where app in ('jinnyboytv');
+
+
+update public.launch_date
+set launch_date = '2015-10-05 00:00:00', app_status='live'
+where app in ('annoyingoran');
+
+update public.launch_date
+set launch_date = '2015-10-06 00:00:00', app_status='live'
+where app in ('stickytech');
+
+update public.launch_date
+set launch_date = '2015-10-09 00:00:00', app_status='live'
+where app in ('cifraclub','nightowlcine');
+
+update public.launch_date
+set launch_date = '2015-10-13 00:00:00', app_status='live'
+where app in ('casbaa');
+
+
+update public.launch_date
+set launch_date = '2015-10-14 00:00:00', app_status='live'
+where app in ('yuleemaImagi','elchicodelaf');
+
+
+update public.launch_date
+set launch_date = '2015-10-15 00:00:00', app_status='live'
+where app in ('maiahocando','internautismo','paisavlogs');
+
+
+update public.launch_date
+set launch_date = '2015-10-28 00:00:00', app_status='live'
+where app in ('fashionone');
+
+
+update public.launch_date
+set launch_date = '2015-11-05 00:00:00', app_status='live'
+where app in ('zoomintvgame','cauet');
+
+
+update public.launch_date
+set launch_date = '2015-11-06 00:00:00', app_status='live'
+where app in ('heychika');
+
+update public.launch_date
+set launch_date = '2015-11-12 00:00:00', app_status='live'
+where app in ('maddibragg','pops360');
+
+UPDATE public.launch_date
+SET launch_date = '2015-11-20 00:00:00', app_status='live'
+WHERE app in ('fouseytube');
+
+UPDATE public.launch_date
+SET launch_date = '2015-11-30 00:00:00', app_status='live'
+WHERE app in ('allthatmatte-');
+
+UPDATE public.launch_date
+SET launch_date = '2015-12-02 00:00:00', app_status='live'
+WHERE app in ('katieprice','nikiandgabi');
+
+UPDATE public.launch_date
+SET launch_date = '2015-12-09 00:00:00', app_status='live'
+WHERE app in ('thecatacroqu','benshorts','anavazquez-');
+
+UPDATE public.launch_date
+SET launch_date = '2015-12-10 00:00:00', app_status='live'
+WHERE app in ('lacrossnetwo');
+
+UPDATE public.launch_date
+SET launch_date = '2015-12-14 00:00:00', app_status='live'
+WHERE app in ('descealetra','cassandraban');
+
+UPDATE public.launch_date
+SET launch_date = '2015-12-15 00:00:00', app_status='live'
+WHERE app in ('rtplugin');
+
+UPDATE public.launch_date
+SET launch_date = '2015-12-17 00:00:00', app_status='live'
+WHERE app in ('nashgrier','africanews');
+
+UPDATE public.launch_date
+SET launch_date = '2015-12-18 00:00:00', app_status='live'
+WHERE app in ('lechrismarqu');
+
+UPDATE public.launch_date
+SET launch_date = '2015-12-25 00:00:00', app_status='live'
+WHERE app in ('staysmilin-','bballbreakdo-');
+
+
+select app,datediff('day',launch_date,'2015-08-31') from public.launch_date
+order by 1,2;
+
+
+select * from public.launch_date
+order by 1,2;
+
+
+select max(event_datetime) from public.event;
