@@ -314,10 +314,10 @@ ORDER BY 1,2,3,4
 
 SELECT
 
-A.app,
-A.SQL_app_name,
-A."date",
-A.os,
+C.app,
+C.SQL_app_name,
+C."date",
+C.os,
 A.days_since_launch,
 
 A.installs,
@@ -361,16 +361,16 @@ I.D90_Retention
 FROM
 
 public.comp_install A
-full outer join public.comp_registration B
-on A.date = B.date
-and A.app = B.app
-and A.os = B.os
-AND A.SQL_app_name=B.SQL_app_name
 full outer join public.comp_dau C
 on A.date = C.date
 and A.app = C.app
 and A.os = C.os
 AND A.SQL_app_name=C.SQL_app_name
+full outer join public.comp_registration B
+on C.date = B.date
+and C.app = B.app
+and C.os = B.os
+AND C.SQL_app_name=B.SQL_app_name
 left join public.comp_engagement D
 ON C.app = D.app
 AND C.date = D.date
@@ -403,6 +403,6 @@ LEFT JOIN
 public.launch_date l
 on C.app=l.app
 and C.os=l.os
-and A.date>=l.launch_date
+and C.date>=l.launch_date
 WHERE l.app_status='live'
 ORDER BY 1,2,3,4;
