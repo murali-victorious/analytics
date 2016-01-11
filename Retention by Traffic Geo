@@ -1,0 +1,140 @@
+-- Query to get retention by traffic geo (US vs. other countries) by app, OS and redshift_app_name
+
+SELECT
+app,
+--apps.name as SQL_app_name,
+os,
+country,
+cast(first_date as date) as first_date,
+MAX(case when daysAfterInstall = 0 then start_count end) as start_count,
+MAX(case when daysAfterInstall = 1 then return_count end) as D1_Retention,
+MAX(case when daysAfterInstall = 2 then return_count end) as D2_Retention,
+MAX(case when daysAfterInstall = 3 then return_count end) as D3_Retention,
+MAX(case when daysAfterInstall = 4 then return_count end) as D4_Retention,
+MAX(case when daysAfterInstall = 5 then return_count end) as D5_Retention,
+MAX(case when daysAfterInstall = 6 then return_count end) as D6_Retention,
+MAX(case when daysAfterInstall = 7 then return_count end) as D7_Retention,
+MAX(case when daysAfterInstall = 8 then return_count end) as D8_Retention,
+MAX(case when daysAfterInstall = 9 then return_count end) as D9_Retention,
+MAX(case when daysAfterInstall = 10 then return_count end) as D10_Retention,
+MAX(case when daysAfterInstall = 11 then return_count end) as D11_Retention,
+MAX(case when daysAfterInstall = 12 then return_count end) as D12_Retention,
+MAX(case when daysAfterInstall = 13 then return_count end) as D13_Retention,
+MAX(case when daysAfterInstall = 14 then return_count end) as D14_Retention,
+MAX(case when daysAfterInstall = 30 then return_count end) as D30_Retention,
+MAX(case when daysAfterInstall = 60 then return_count end) as D60_Retention,
+MAX(case when daysAfterInstall = 90 then return_count end) as D90_Retention
+
+FROM
+
+(
+
+SELECT 
+start_count.app,
+start_count.os,
+start_count.country,
+To_char(start_count.first_date, 'YYYY-MM-DD') AS first_date, 
+       return_count.nday                             AS daysAfterInstall, 
+       start_count.start_count, 
+       return_count.return_count
+        
+FROM   
+
+(
+SELECT app, os, first_date, country,
+               Count(user_id) AS start_count 
+        FROM   (SELECT app, os, country,start_count.user_id, 
+                       local_datetime :: DATE AS first_date 
+                FROM   (SELECT * 
+                        FROM   (SELECT Row_number() 
+                                         over( 
+                                           PARTITION BY app,os,user_id 
+                                           ORDER BY local_datetime) AS row_num, 
+                                       local_datetime :: DATE       AS 
+                                       first_date, 
+                                       * 
+                                FROM   install 
+                                where event_datetime>'2015-12-24 07:59:59'
+                                ) 
+                               installs_with_row_num 
+                        WHERE  row_num = 1 
+                               ) 
+                       start_count 
+                WHERE  1 = 1) a 
+        GROUP  BY 1,2,3,4
+) start_count
+         
+left join 
+
+(
+SELECT                   r.app,
+                         r.os,
+                         r.country,
+                         r.first_date, 
+                         r.nday, 
+                         Count(r.user_id) AS return_count 
+                  FROM   (SELECT starters.app,
+                                 starters.os,
+                                 starters.country,
+                                 starters.user_id, 
+                                 starters.first_date, 
+                                 returners.return_date, 
+                                 returners.return_date - starters.first_date AS 
+                                 nday 
+                          FROM   (
+                                 SELECT app,os,country,start_count.user_id, 
+                                         local_datetime :: DATE AS first_date 
+                                  FROM   (SELECT * 
+                                          FROM   (SELECT Row_number() 
+                                                           over( 
+                                                             PARTITION BY 
+                                                           app,os,user_id 
+                                                             ORDER BY 
+                                                           local_datetime) 
+                                                         AS row_num, 
+                                                         local_datetime :: DATE 
+                                                         AS 
+                                                         first_date, 
+                                                         * 
+                                                  FROM   install 
+                                                  where event_datetime>'2015-12-24 07:59:59'
+                                                  ) 
+                                                 installs_with_row_num 
+                                          WHERE  row_num = 1 
+                                                 ) 
+                                         start_count 
+                                  WHERE  1 = 1
+                                  ) starters 
+                                  inner join 
+                                  (
+                                  SELECT DISTINCT app,os,country,user_id, 
+                                                             local_datetime :: 
+                                                             DATE AS 
+                                                             return_date 
+                                             FROM   dau 
+                                             WHERE local_datetime :: DATE < 
+                                                        Getdate() :: DATE
+                                                        and event_datetime>'2015-12-24 07:59:59'
+                                   )returners 
+                                         ON starters.user_id = returners.user_id
+                                         and starters.app = returners.app
+                                         and starters.os=returners.os 
+                                         and starters.country = returners.country
+                                         AND returners.return_date >= starters.first_date
+                            ) r 
+                  GROUP  BY 1,2,3,4,5
+) return_count
+                             
+ON start_count.app = return_count.app
+AND start_count.os = return_count.os
+AND start_count.first_date = return_count.first_date
+and start_count.country = return_count.country
+
+ 
+ORDER  BY 1,2,3,4,5
+)
+--INNER JOIN vicky.apps
+--ON app=apps.redshift_app_name
+GROUP BY 1,2,3,4
+ORDER BY 1,2,3,4
+;
