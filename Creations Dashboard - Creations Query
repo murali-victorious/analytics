@@ -1,0 +1,23 @@
+select
+D.app,
+D."date",
+D.os,
+D.dau,
+C.creations,
+C.creators,
+R.reposts,
+R.reposters
+from public.comp_dau D
+LEFT JOIN comp_creation C
+ON D.app=C.app
+AND D.os=C.os
+AND D.date=C.date
+LEFT JOIN comp_repost R
+on D.app = R.app
+and D.date = R.date
+and D.os = R.os
+LEFT JOIN
+public.launch_date l
+on D.app=l.app
+and D.os=l.os
+WHERE D.date>=l.launch_date
