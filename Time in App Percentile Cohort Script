@@ -1,0 +1,103 @@
+-- Time in App Percentile Cohort Creation Script
+
+drop table public.time_in_app_percentile_all_apps;
+
+-- Creation Script
+
+Create table public.time_in_app_percentile_all_apps as
+(
+SELECT CASE 
+                           WHEN ntile >= 99 THEN 'p99' 
+                           WHEN ntile >= 95 AND ntile < 99 THEN 'p95-98' 
+                           WHEN ntile >= 90 AND ntile <95 THEN 'p90-94' 
+                           WHEN ntile >= 80 AND ntile <90 THEN 'p80-89' 
+                           WHEN ntile >= 70 AND ntile <80 THEN 'p70-79' 
+                           WHEN ntile >= 60 AND ntile <70 THEN 'p60-69' 
+                           WHEN ntile >= 50 AND ntile <60 THEN 'p50-59' 
+                           WHEN ntile >= 40 AND ntile <50 THEN 'p40-49' 
+                           WHEN ntile >= 30 AND ntile <40 THEN 'p30-39' 
+                           WHEN ntile >= 20 AND ntile <30 THEN 'p20-29' 
+                           WHEN ntile >= 10 AND ntile <20 THEN 'p10-19' 
+                           ELSE 'p0-9' 
+                         END AS percentile, 
+                         * 
+                         FROM
+(
+select Ntile(100)
+over (partition by app order by time_in_app) as ntile, *
+from
+(select
+app,
+os,
+device_tag,
+sum(float1) as time_in_app
+from public.event
+where kingdom = 'session'
+and phylum = 'session_end'
+--and event_datetime >'2015-07-29 06:59:59'
+group by 1,2,3
+--having sum(float1)>0
+)
+)
+ORDER BY time_in_app desc
+);
+
+
+-- Creation Query for Lapsed Users (based on 3,7,14,30 days)
+
+drop table public.lapsed_users_ryanhiga;
+
+-- Creation Script 
+
+create table public.lapsed_users_ryanhiga as
+(
+select
+e.app,
+e.device_tag,
+max(e.event_datetime) as last_known_timestamp,
+a.event_datetime as reg_timestamp,
+datediff(day,a.event_datetime,max(e.event_datetime)) as days_since_reg
+from public.event e
+join
+(
+select
+app,
+device_tag,
+event_datetime,
+kingdom,
+phylum,
+class,
+"order"
+from public.event
+where app in ('ryanhiga')
+and kingdom like '%registration%'
+) as a
+on e.app = a.app
+and e.device_tag = a.device_tag
+where e.app='ryanhiga'
+--and kingdom = 'session'
+--and phylum = 'session_end'
+group by 1,2,4
+having max(e.event_datetime) < '2015-08-06 07:00:00'
+order by 3 desc
+);
+
+-- Query for Lapsed Users (3,7,14,30 days)
+
+select count(*) from
+(
+select
+device_tag,
+max(event_datetime) as last_known_timestamp
+from public.event
+where app='eleventhgorg'
+--and kingdom = 'session'
+--and phylum = 'session_end'
+group by 1
+having max(event_datetime) < '2015-08-05 07:00:00'
+order by 2 desc
+);
+--group by 1
+--having sum(float1)>0
+
+
