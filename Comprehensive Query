@@ -49,9 +49,10 @@ create table public.comp_dau as
 (
 SELECT 
 dau.app 
+, l.SQL_app_name
 , cast(TO_CHAR(dau.local_datetime::DATE, 'YYYY-MM-DD') as date) as date
 , dau.os
-, apps.name as SQL_app_name
+, datediff(day,l.launch_date, CAST(TO_CHAR(dau.local_datetime::date, 'YYYY-MM-DD') as date)) as days_since_launch
 , COUNT(DISTINCT dau.user_id) as dau 
 FROM 
 (SELECT ROW_NUMBER() OVER(PARTITION BY dau.app, dau.os, dau.user_id, dau.local_datetime::DATE ORDER BY dau.event_datetime) as row_num
@@ -62,10 +63,12 @@ JOIN install
 on dau.app = install.app
 and dau.user_id = install.user_id
 and dau.event_datetime>=install.event_datetime
-INNER JOIN vicky.apps
-ON dau.app=apps.redshift_app_name
+JOIN launch_date l 
+on dau.app=l.app
+AND dau.os=l.os
 WHERE row_num = 1
-GROUP BY 1,2,3,4
+AND l.app_status='live'
+GROUP BY 1,2,3,4,5
 );
 
 
@@ -73,7 +76,8 @@ GROUP BY 1,2,3,4
 
 create table public.comp_engagement as
 (
-SELECT app, cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date,event."os",COUNT(*) AS engagements,COUNT(DISTINCT event.user_id) AS engagers 
+SELECT app, cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date
+,event."os",COUNT(*) AS engagements,COUNT(DISTINCT event.user_id) AS engagers 
 
 FROM event event 
 
@@ -105,7 +109,8 @@ GROUP BY 1,2,3
 create table public.comp_tileview
 as
 (
-SELECT app, cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date,event."os",COUNT(*) AS tile_views,COUNT(DISTINCT event.user_id) AS tile_viewers 
+SELECT app, cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date
+,event."os",COUNT(*) AS tile_views,COUNT(DISTINCT event.user_id) AS tile_viewers 
 
 FROM event event  
 
@@ -116,8 +121,6 @@ GROUP BY 1,2,3
 
 
 -- Creation
-
---drop table public.comp_creation;
 
 create table public.comp_creation
 as
@@ -139,9 +142,6 @@ GROUP BY 1,2,3
 
 
 -- Time in App
-
---drop table public.comp_timeinapp;
-
 create table public.comp_timeinapp
 as
 ( 
@@ -156,6 +156,7 @@ SUM(float1) AS time_in_msec
 FROM event event
 WHERE event."kingdom" LIKE 'session' 
 AND event."phylum" LIKE 'session_end'
+AND event.float1>=0
 GROUP BY 1,2,3
 );
 
@@ -165,7 +166,8 @@ GROUP BY 1,2,3
 create table public.comp_repost
 as
 (
-SELECT app, cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date,event."os",COUNT(*) AS reposts,COUNT(DISTINCT event.user_id) AS reposters 
+SELECT app, cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date
+,event."os",COUNT(*) AS reposts,COUNT(DISTINCT event.user_id) AS reposters 
 
 FROM event  
 
