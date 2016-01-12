@@ -1,0 +1,70 @@
+select
+distinct
+A.app,
+A.SQL_app_name,
+A.date,
+A.sessions,
+A.session_starters,
+A.time_in_msec,
+B.native_posts
+from
+(
+SELECT 
+app
+,apps.name as SQL_app_name
+,cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date
+,COUNT(*) AS sessions
+,COUNT(DISTINCT event.user_id) AS session_starters,
+SUM(float1) AS time_in_msec 
+FROM public.event event
+INNER JOIN vicky.apps
+ON event.app=apps.redshift_app_name
+WHERE event."kingdom" LIKE 'session' 
+AND event."phylum" LIKE 'session_end'
+and user_map_tag in
+(
+select ('ut'||id) as user_map_tag from vicky.users
+where access_level like '%api_owner%'
+)
+GROUP BY 1,2,3
+ORDER BY 1,2,3
+) as A
+full outer join
+(
+select
+app,
+redshift_app_name,
+date,
+count(distinct post_id) as native_posts
+from
+(
+select
+distinct
+a.name as app,
+a.redshift_app_name,
+s.id as post_id,
+s.name as post_name,
+date_trunc('day',convert_timezone('UTC','US/Pacific',s.created_at)) as date
+from vicky.sequences s
+join vicky.nodes n
+on s.id = n.sequence_id
+join vicky.contentitems ci
+on n.id = ci.node_id
+join vicky.apps a
+on s.app_id = a.id
+join vicky.users u
+on s.created_by = u.id
+where ci.remote_source = 'app'
+and s.category not like '%repost%'
+and u.access_level like '%api_owner%'
+)
+group by 1,2,3
+order by 1,2
+) as B
+on A.SQL_app_name = B.app
+and A.date = B.date
+join public.launch_date ld
+on A.app = ld.app
+and A.date>=ld.launch_date
+and A.app is not null
+order by 1,2,3
