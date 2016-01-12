@@ -1,0 +1,12 @@
+SELECT 
+date_trunc('month',cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date)) as "month",
+dau.app,
+dau."os", 
+count(distinct user_id) as MAU
+from public.dau
+JOIN public.launch_date l 
+ON dau.app=l.app
+AND dau.os=l.os
+WHERE l.app_status='live'
+group by 1,2,3
+order by 1,2,3
