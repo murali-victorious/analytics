@@ -1,0 +1,16 @@
+SELECT 
+app, 
+cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date,
+event."os",
+kingdom,
+phylum,
+class,
+"order",
+COUNT(*) AS views,
+COUNT(DISTINCT event.user_id) AS viewers, 
+sum(case when event."class"='video' then 1 else 0 end) as video_views,
+count(distinct case when event."class"='video' then user_id else null end) as video_viewers
+FROM event
+WHERE event."kingdom" LIKE 'view'
+GROUP BY 1,2,3,4,5,6,7
+ORDER BY 1,2,3
