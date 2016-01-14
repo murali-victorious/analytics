@@ -4,6 +4,7 @@ select
 distinct
 A.app,
 A.date,
+apps.redshift_app_name,
 A.sessions,
 A.session_starters,
 A.time_in_msec,
@@ -65,4 +66,6 @@ on A.app = ld.app
 and A.date>=ld.launch_date
 --and A.app='failarmy'
 and A.app is not null
-order by 1,2,3;
+INNER JOIN vicky.apps
+on A.app=apps.redshift_app_name
+order by 1,2,3,4;
