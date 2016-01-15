@@ -21,3 +21,5 @@ public.launch_date l
 on D.app=l.app
 and D.os=l.os
 WHERE D.date>=l.launch_date
+AND (D.date<l.deactivation_date OR  l.deactivation_date is null)
+AND l.app_status IN ('live','inactive')
