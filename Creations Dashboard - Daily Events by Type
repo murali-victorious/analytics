@@ -12,7 +12,8 @@ JOIN public.launch_date l
 ON event.app=l.app
 AND event.os=l.os
 WHERE event."kingdom" in ('view','engagement','ugc_creation','owner_creation','social')
-AND l.app_status='live'
+AND l.app_status IN ('live','inactive')
 AND local_datetime>=launch_date
+AND (local_datetime<=deactivation_date OR deactivation_date is null)
 GROUP BY 1,2,3,4,5,6
 ORDER BY 1,2,3
