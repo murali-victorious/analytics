@@ -1,0 +1,20 @@
+SELECT 
+A.app 
+, cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date
+, A.os
+, datediff(day,L.launch_date,cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date)) as days_since_launch
+,COUNT(DISTINCT user_id) as installs
+FROM 
+(SELECT ROW_NUMBER() OVER(PARTITION BY app, os, user_id ORDER BY event_datetime) as row_num
+, *
+FROM install
+) A
+join public.launch_date L
+on A.app = L.app
+and A.os=L.os
+and  cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date)>=L.launch_date
+WHERE row_num = 1
+AND l.app_status IN ('live','inactive')
+AND (local_datetime<=deactivation_date OR deactivation_date is null)
+GROUP BY 1,2,3,4
+ORDER BY 1,2,3,4
