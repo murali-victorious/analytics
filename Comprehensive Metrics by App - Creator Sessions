@@ -66,5 +66,6 @@ and A.date = B.date
 join public.launch_date ld
 on A.app = ld.app
 and A.date>=ld.launch_date
-and A.app is not null
+WHERE (A.date<ld.deactivation_date OR ld.deactivation_date is null)
+AND ld.app_status IN ('live','inactive')
 order by 1,2,3
