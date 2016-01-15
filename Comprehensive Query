@@ -406,5 +406,6 @@ public.launch_date l
 on C.app=l.app
 and C.os=l.os
 and C.date>=l.launch_date
-WHERE l.app_status='live'
+WHERE l.app_status in ('live','inactive')
+AND (l.deactivation_date is null OR C.date<l.deactivation_date)
 ORDER BY 1,2,3,4;
