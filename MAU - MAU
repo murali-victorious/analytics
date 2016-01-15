@@ -7,6 +7,8 @@ from public.dau
 JOIN public.launch_date l 
 ON dau.app=l.app
 AND dau.os=l.os
-WHERE l.app_status='live'
+WHERE l.app_status IN ('live', 'inactive')
+AND dau.local_datetime>=l.launch_date
+AND (dau.local_datetime<=l.deactivation_date OR l.deactivation_date is null)
 group by 1,2,3
 order by 1,2,3
