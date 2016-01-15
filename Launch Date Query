@@ -5,29 +5,31 @@ create table public.launch_date as
 (
 select
 app,
+apps.name as SQL_app_name,
 os,
-'not_live' as app_status, 
+'not_live' as app_status,
 date_trunc('day',min(event_datetime)) as launch_date
+, CAST(null as datetime) as deactivation_date
 from public.install
 INNER JOIN vicky.apps
 ON install.app=apps.redshift_app_name
-group by 1,2,3
-order by 1,2,3
+group by 1,2,3,4
+order by 1,3,4
 );
 
 
 update public.launch_date
-set launch_date = '2014-09-10 00:00:00', app_status='live'
+set launch_date = '2014-09-10 00:00:00', app_status='inactive', deactivation_date='2015-12-31 11:59:59'
 where app in ('jesslizama');
 
 
 update public.launch_date
-set launch_date = '2014-10-13 00:00:00', app_status='live'
+set launch_date = '2014-10-13 00:00:00', app_status='inactive', deactivation_date='2015-12-31 11:59:59'
 where app in ('pwnisher');
 
 
 update public.launch_date
-set launch_date = '2014-11-04 00:00:00', app_status='live'
+set launch_date = '2014-11-04 00:00:00', app_status='inactive', deactivation_date='2015-12-31 11:59:59'
 where app in ('gtchannel');
 
 
@@ -160,7 +162,7 @@ where app in ('hiphollywood');
 
 
 update public.launch_date
-set launch_date = '2015-09-18 00:00:00', app_status='live'
+set launch_date = '2015-09-18 00:00:00', app_status='inactive', deactivation_date='2015-12-31 11:59:59'
 where app in ('dangmattsmit');
 
 
@@ -176,8 +178,11 @@ where app in ('skizzfamily');
 
 update public.launch_date
 set launch_date = '2015-09-24 00:00:00', app_status='live'
-where app in ('lelepons','thehartland','wongfu','freestylefb');
+where app in ('lelepons','wongfu','freestylefb');
 
+update public.launch_date
+set launch_date = '2015-09-24 00:00:00', app_status='inactive', deactivation_date='2015-12-31 11:59:59'
+where app in ('thehartland');
 
 update public.launch_date
 set launch_date = '2015-09-26 00:00:00', app_status='live'
@@ -287,6 +292,9 @@ UPDATE public.launch_date
 SET launch_date = '2015-12-25 00:00:00', app_status='live'
 WHERE app in ('staysmilin-','bballbreakdo-');
 
+UPDATE public.launch_date
+SET launch_date = '2016-01-07 00:00:00', app_status='live'
+WHERE app in ('boyceavenue');
 
 select app,datediff('day',launch_date,'2015-08-31') from public.launch_date
 order by 1,2;
