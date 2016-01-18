@@ -67,7 +67,7 @@ JOIN launch_date l
 on dau.app=l.app
 AND dau.os=l.os
 WHERE row_num = 1
-AND l.app_status='live'
+AND l.app_status IN ('live','inactive')
 GROUP BY 1,2,3,4,5
 );
 
