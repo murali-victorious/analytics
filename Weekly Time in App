@@ -1,0 +1,16 @@
+-- Weekly Time in App by week, app and os
+
+SELECT 
+app,
+--DATE_TRUNC('day',local_datetime) as date, 
+date_trunc('week',cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date)) as week
+,os
+,COUNT(*) AS sessions
+,COUNT(DISTINCT event.user_id) AS session_starters,
+SUM(float1) AS time_in_msec 
+FROM event event
+WHERE event."kingdom" LIKE 'session' 
+AND event."phylum" LIKE 'session_end'
+AND event.float1>=0
+GROUP BY 1,2,3
+;
