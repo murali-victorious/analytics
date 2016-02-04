@@ -1,0 +1,46 @@
+-- Query to return count of users that create, repost or comment on the same day of install
+
+
+select
+A.app,
+count(distinct A.user_id) as installs,
+count(distinct B.user_id) as engagers
+from
+(
+SELECT 
+A.app
+--, apps.name as SQL_app_name 
+,A.user_id
+, cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date
+--, A.os
+--, datediff(day,L.launch_date,cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date)) as days_since_launch
+--,COUNT(DISTINCT user_id) as installs
+FROM 
+(SELECT ROW_NUMBER() OVER(PARTITION BY app, os, user_id ORDER BY event_datetime) as row_num
+, *
+FROM install
+) A
+join public.launch_date L
+on A.app = L.app
+and A.os=L.os
+and  cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date)>=L.launch_date
+--INNER JOIN vicky.apps
+--on A.app=apps.redshift_app_name
+WHERE row_num = 1
+) A
+LEFT JOIN
+(
+SELECT 
+distinct
+app, 
+user_id,
+cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date
+FROM event event 
+WHERE (event."kingdom" LIKE 'engagement' and phylum in ('repost','comment')) OR (event.kingdom like '%creation%')
+GROUP BY 1,2,3
+) B
+on A.app = B.app
+and A.user_id = B.user_id
+and A.date = B.date
+group by 1
+;
