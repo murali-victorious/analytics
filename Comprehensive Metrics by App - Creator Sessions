@@ -1,24 +1,32 @@
+--Pulls creator session information and the number of native posts to the app either from within the app or through the CMS. reposts do not count as native posts.
+
 select
 distinct
-A.app,
-A.SQL_app_name,
-A.date,
+d.app,
+d.SQL_app_name,
+d.date,
 A.sessions,
 A.session_starters,
 A.time_in_msec,
 B.native_posts
 from
 (
+SELECT distinct app, apps.name as SQL_app_name, local_datetime::date AS date
+FROM event
+INNER JOIN vicky.apps
+on event.app=apps.redshift_app_name
+WHERE event_datetime<='2018-01-01 00:00:00'
+GROUP BY 1,2,3
+) as d
+LEFT JOIN 
+(
 SELECT 
 app
-,apps.name as SQL_app_name
 ,cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date
 ,COUNT(*) AS sessions
 ,COUNT(DISTINCT event.user_id) AS session_starters,
 SUM(float1) AS time_in_msec 
 FROM public.event event
-INNER JOIN vicky.apps
-ON event.app=apps.redshift_app_name
 WHERE event."kingdom" LIKE 'session' 
 AND event."phylum" LIKE 'session_end'
 and user_map_tag in
@@ -26,13 +34,15 @@ and user_map_tag in
 select ('ut'||id) as user_map_tag from vicky.users
 where access_level like '%api_owner%'
 )
-GROUP BY 1,2,3
+GROUP BY 1,2
 ORDER BY 1,2,3
 ) as A
-full outer join
+ON d.date=a.date
+AND d.app=a.app
+
+LEFT JOIN 
 (
 select
-app,
 redshift_app_name,
 date,
 count(distinct post_id) as native_posts
@@ -40,7 +50,6 @@ from
 (
 select
 distinct
-a.name as app,
 a.redshift_app_name,
 s.id as post_id,
 s.name as post_name,
@@ -58,14 +67,15 @@ where ci.remote_source = 'app'
 and s.category not like '%repost%'
 and u.access_level like '%api_owner%'
 )
-group by 1,2,3
+group by 1,2
 order by 1,2
 ) as B
-on A.SQL_app_name = B.app
-and A.date = B.date
-join public.launch_date ld
-on A.app = ld.app
-and A.date>=ld.launch_date
-WHERE (A.date<ld.deactivation_date OR ld.deactivation_date is null)
+ON D.app=B.redshift_app_name
+and D.date = B.date
+LEFT join public.launch_date ld
+on D.app = ld.app
+and D.date>=ld.launch_date
+WHERE (D.date<ld.deactivation_date OR ld.deactivation_date is null)
 AND ld.app_status IN ('live','inactive')
+AND (A.session_starters>0 OR B.native_posts>0)
 order by 1,2,3
