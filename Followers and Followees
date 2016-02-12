@@ -1,0 +1,54 @@
+--Pulls the number of users that got their first follower on a particular date (non-autofollow)
+SELECT app, date::date as date, COUNT(distinct species) as users_first_followed
+FROM 
+(
+SELECT app, species, min(local_datetime) as date
+FROM EVENT
+WHERE kingdom='social'
+and phylum='follow'
+GROUP BY 1,2
+)
+WHERE date>='2015-11-20 00:00:00'
+GROUP BY 1,2
+ORDER BY 1,2,3
+;
+
+
+--The number of users that were followed on a certain date (non-autofollow)
+
+SELECT app, date, sum(followers) as followers
+FROM
+(
+SELECT app, local_datetime::date as date, COUNT(distinct user_id) as followers
+FROM EVENT
+WHERE kingdom='social'
+and phylum='follow'
+and local_datetime>='2015-11-20 00:00:00'
+GROUP BY 1,2
+)follows
+WHERE date>='2015-11-20 00:00:00'
+GROUP BY 1,2
+
+
+
+;
+
+--Number of followers gained on a given day (non-autofollow)
+
+SELECT users.app_id
+, apps.redshift_app_name
+, users.id
+, users.name
+,(convert_timezone('UTC','us/pacific',follows.created_at))::date as date
+, COUNT(distinct follower_id) as followers
+FROM vicky.users
+LEFT JOIN vicky.follows
+ON users.app_id=follows.app_id
+AND users.id=follows.user_id
+JOIN vicky.apps
+ON users.app_id=apps.id
+WHERE follows.created_at>='2015-11-19 08:00:00'
+AND users.autofollow='no'
+GROUP BY 1,2,3,4,5
+ORDER BY 6 desc
+LIMIT 1000
