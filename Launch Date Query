@@ -296,6 +296,26 @@ UPDATE public.launch_date
 SET launch_date = '2016-01-07 00:00:00', app_status='live'
 WHERE app in ('boyceavenue');
 
+UPDATE public.launch_date
+SET launch_date = '2016-01-22 00:00:00', app_status='live'
+WHERE app in ('guilhermegam','taylordavis');
+
+UPDATE public.launch_date
+SET launch_date = '2016-01-26 00:00:00', app_status='live'
+WHERE app in ('mjp-');
+
+UPDATE public.launch_date
+SET launch_date = '2016-02-04 00:00:00', app_status='live'
+WHERE app in ('santarm');
+
+UPDATE public.launch_date
+SET launch_date = '2016-02-09 00:00:00', app_status='live'
+WHERE app in ('waterbugarmy-');
+
+UPDATE public.launch_date
+SET launch_date = '2016-02-11 00:00:00', app_status='live'
+WHERE app in ('tensecondson');
+
 select app,datediff('day',launch_date,'2015-08-31') from public.launch_date
 order by 1,2;
 
