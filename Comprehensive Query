@@ -127,7 +127,6 @@ as
 (
 SELECT 
 app,
---DATE_TRUNC('day',local_datetime) as date, 
 cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date,
 event."os",
 COUNT(*) AS creations,
@@ -136,7 +135,6 @@ COUNT(DISTINCT event.user_id) AS creators
 FROM event event  
 
 WHERE event."kingdom" LIKE '%creation%'
---AND app in ('enchufetv','vetealaversh')
 GROUP BY 1,2,3
 );
 
@@ -147,7 +145,6 @@ as
 ( 
 SELECT 
 app,
---DATE_TRUNC('day',local_datetime) as date, 
 cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date,
 os
 ,COUNT(*) AS sessions
@@ -157,6 +154,7 @@ FROM event event
 WHERE event."kingdom" LIKE 'session' 
 AND event."phylum" LIKE 'session_end'
 AND event.float1>=0
+AND event.float1<=86400000
 GROUP BY 1,2,3
 );
 
@@ -212,91 +210,79 @@ SELECT
 start_count.app,
 start_count.os,
 To_char(start_count.first_date, 'YYYY-MM-DD') AS first_date, 
-       return_count.nday                             AS daysAfterInstall, 
-       start_count.start_count, 
-       return_count.return_count
+return_count.nday                             AS daysAfterInstall, 
+start_count.start_count, 
+return_count.return_count
         
 FROM   
 
 (
-SELECT app, os, first_date, 
-               Count(user_id) AS start_count 
-        FROM   (SELECT app, os, start_count.user_id, 
-                       local_datetime :: DATE AS first_date 
-                FROM   (SELECT * 
-                        FROM   (SELECT Row_number() 
-                                         over( 
-                                           PARTITION BY app,os,user_id 
-                                           ORDER BY local_datetime) AS row_num, 
-                                       local_datetime :: DATE       AS 
-                                       first_date, 
-                                       * 
-                                FROM   install 
-                                ) 
-                               installs_with_row_num 
-                        WHERE  row_num = 1 
-                               ) 
-                       start_count 
-                WHERE  1 = 1) a 
-        GROUP  BY 1,2,3
-) start_count
-         
+SELECT app, os, first_date, Count(user_id) AS start_count 
+FROM
+        (
+        SELECT app, os, start_count.user_id, local_datetime :: DATE AS first_date 
+        FROM   
+                (
+                SELECT * 
+                FROM   
+                        (
+                        SELECT Row_number() over(PARTITION BY app,os,user_id ORDER BY local_datetime) AS row_num, 
+                               local_datetime :: DATE AS first_date, 
+                               * 
+                        FROM   install 
+                        ) installs_with_row_num 
+                WHERE  row_num = 1 
+               ) start_count 
+        WHERE  1 = 1
+        ) a 
+GROUP  BY 1,2,3
+) start_count  
 left join 
-
 (
-SELECT                   r.app,
-                         r.os,
-                         r.first_date, 
-                         r.nday, 
-                         Count(r.user_id) AS return_count 
-                  FROM   (SELECT starters.app,
-                                 starters.os,
-                                 starters.user_id, 
-                                 starters.first_date, 
-                                 returners.return_date, 
-                                 returners.return_date - starters.first_date AS 
-                                 nday 
-                          FROM   (
-                                 SELECT app,os,start_count.user_id, 
-                                         local_datetime :: DATE AS first_date 
-                                  FROM   (SELECT * 
-                                          FROM   (SELECT Row_number() 
-                                                           over( 
-                                                             PARTITION BY 
-                                                           app,os,user_id 
-                                                             ORDER BY 
-                                                           local_datetime) 
-                                                         AS row_num, 
-                                                         local_datetime :: DATE 
-                                                         AS 
-                                                         first_date, 
-                                                         * 
-                                                  FROM   install 
-                                                  ) 
-                                                 installs_with_row_num 
-                                          WHERE  row_num = 1 
-                                                 ) 
-                                         start_count 
-                                  WHERE  1 = 1
-                                  ) starters 
-                                  inner join 
-                                  (
-                                  SELECT DISTINCT app,os,user_id, 
-                                                             local_datetime :: 
-                                                             DATE AS 
-                                                             return_date 
-                                             FROM   dau 
-                                             WHERE local_datetime :: DATE < 
-                                                        Getdate() :: DATE
-                                   )returners 
-                                         ON starters.user_id = returners.user_id
-                                         and starters.app = returners.app
-                                         and starters.os=returners.os 
-                                         AND returners.return_date >= starters.first_date
-                            ) r 
-                  GROUP  BY 1, 2,3,4
+SELECT   r.app,
+         r.os,
+         r.first_date, 
+         r.nday, 
+         Count(r.user_id) AS return_count 
+         FROM   
+                (
+                SELECT starters.app,
+                starters.os,
+                starters.user_id, 
+                starters.first_date, 
+                returners.return_date, 
+                returners.return_date - starters.first_date AS nday 
+                  FROM   
+                        (
+                        SELECT app,os,start_count.user_id, local_datetime :: DATE AS first_date 
+                        FROM   
+                                (
+                                SELECT * 
+                                FROM   
+                                        (
+                                        SELECT Row_number() over(PARTITION BY app,os,user_id ORDER BY local_datetime) AS row_num, 
+                                        local_datetime :: DATE AS first_date, 
+                                        * 
+                                        FROM   install 
+                                        ) installs_with_row_num 
+                                WHERE  row_num = 1 
+                                ) start_count 
+                        WHERE  1 = 1
+                        ) starters 
+                        inner join 
+                        (
+                        SELECT DISTINCT app,os,user_id, local_datetime :: DATE AS return_date 
+                        FROM   dau 
+                        WHERE local_datetime :: DATE < Getdate() :: DATE
+                        )returners 
+                        ON starters.user_id = returners.user_id
+                        and starters.app = returners.app
+                        and starters.os=returners.os 
+                        AND returners.return_date >= starters.first_date
+                ) r 
+GROUP  BY 1, 2,3,4
 ) return_count
-                             
+                            
 ON start_count.app = return_count.app
 AND start_count.os = return_count.os
 AND start_count.first_date = return_count.first_date
@@ -320,7 +306,7 @@ C.app,
 C.SQL_app_name,
 C."date",
 C.os,
-A.days_since_launch,
+C.days_since_launch,
 
 A.installs,
 B.registrations,
@@ -367,12 +353,10 @@ full outer join public.comp_dau C
 on A.date = C.date
 and A.app = C.app
 and A.os = C.os
-AND A.SQL_app_name=C.SQL_app_name
 full outer join public.comp_registration B
 on C.date = B.date
 and C.app = B.app
 and C.os = B.os
-AND C.SQL_app_name=B.SQL_app_name
 left join public.comp_engagement D
 ON C.app = D.app
 AND C.date = D.date
