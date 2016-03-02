@@ -11,3 +11,23 @@ JOIN users ON facebookaccounts.login_id=users.parent_login_id
 JOIN apps ON users.app_id = apps.id
 WHERE apps.id in (35,185,45,51,32,57);
 ##AND facebookaccounts.email NOT LIKE '%@getvictorious.api';
+
+
+
+-- Same as above with platform added
+
+SELECT
+distinct
+users.app_id,
+apps.name as app_name,
+facebookaccounts.email,
+users.name as user_name,
+facebookaccounts.uid as facebook_id,
+devices.platform
+FROM facebookaccounts 
+JOIN users ON facebookaccounts.login_id=users.parent_login_id 
+JOIN apps ON users.app_id = apps.id
+JOIN logintokens on users.parent_login_id = logintokens.login_id
+JOIN devices on logintokens.device_id = devices.id
+WHERE apps.id in (35,185,45,51,32,57);
+##AND facebookaccounts.email NOT LIKE '%@getvictorious.api';
