@@ -1,0 +1,95 @@
+SELECT A.app_id 
+, apps.name as app_name
+, A.user_id as user_id
+, u.name as user_name
+, A.month
+, nvl(email.email,'') as email
+, nvl(u.profile_location,'') as profile_location
+, SUM(nvl(creations,0)) as creations
+, SUM(nvl(comments,0)) as comments
+, SUM(nvl(likes,0)) as likes
+, SUM(nvl(ebs,0)) as EBs
+, SUM(nvl(poll_responses,0)) as poll_responses
+, SUM(nvl(reposts,0)) as reposts
+FROM 
+        (
+        (SELECT app_id, created_by as user_id, date_trunc('month',created_at) as "month" from vicky.sequences WHERE is_complete='yes' AND is_deleted='no' AND is_moderated='no')
+        UNION 
+        (SELECT app_id, user_id, date_trunc('month',created_at) as "month" from vicky.comments WHERE is_complete='yes' AND is_deleted='no' AND is_moderated='no' )
+        UNION
+        (SELECT u.app_id, sl.user_id, date_trunc('month',sl.created_at) as "month" from vicky.sequencelikes sl JOIN vicky.users u ON sl.user_id=u.id )
+        UNION 
+        (SELECT u.app_id, sv.user_id, date_trunc('month',sv.created_at) as "month" from vicky.sequencevotes sv JOIN vicky.users u ON sv.user_id=u.id )
+        UNION
+        (SELECT u.app_id, si.user_id, date_trunc('month',si.created_at) as "month" from vicky.statinteractions si JOIN vicky.users u ON si.user_id=u.id )
+        ) A
+LEFT JOIN 
+        (
+        SELECT created_by as user_id, date_trunc('month',created_at) as "month", COUNT(distinct id) as creations 
+        from vicky.sequences WHERE is_complete='yes' AND is_deleted='no' AND is_moderated='no'
+        GROUP BY 1,2
+        ) creations
+ON A.user_id=creations.user_id
+AND A.month=creations.month
+
+LEFT JOIN 
+        (
+        SELECT user_id, date_trunc('month',created_at) as "month", COUNT(distinct id) as comments 
+        from vicky.comments WHERE is_complete='yes' AND is_deleted='no' AND is_moderated='no'
+        GROUP BY 1,2
+        ) comments
+ON A.user_id=comments.user_id
+AND A.month=comments.month
+
+LEFT JOIN 
+        (
+        SELECT sl.user_id, date_trunc('month',sl.created_at) as "month", COUNT(distinct sl.id) as likes 
+        from vicky.sequencelikes sl JOIN vicky.users u ON sl.user_id=u.id 
+        GROUP BY 1,2
+        ) likes
+ON A.user_id=likes.user_id
+AND A.month=likes.month
+
+LEFT JOIN 
+        (
+        SELECT sv.user_id, date_trunc('month',sv.created_at) as "month", SUM(sv.vote_count) as EBs 
+        from vicky.sequencevotes sv JOIN vicky.users u ON sv.user_id=u.id
+        GROUP BY 1,2
+        ) EBs
+ON A.user_id=EBs.user_id
+AND A.month=EBs.month
+
+LEFT JOIN 
+        (
+        SELECT si.user_id, date_trunc('month',si.created_at) as "month", COUNT(distinct si.id) as poll_responses
+        from vicky.statinteractions si JOIN vicky.users u ON si.user_id=u.id
+        GROUP BY 1,2
+        ) poll_responses
+ON A.user_id=poll_responses.user_id
+AND A.month=poll_responses.month
+
+LEFT JOIN 
+        (
+        SELECT created_by as user_id, date_trunc('month',created_at) as "month", COUNT(distinct id) as reposts
+        from vicky.sequences WHERE is_complete='yes' AND is_deleted='no' AND is_moderated='no' AND category LIKE '%repost%'
+        GROUP BY 1,2
+        ) reposts
+ON A.user_id=reposts.user_id
+AND A.month=reposts.month
+
+JOIN vicky.users u
+ON A.user_id = u.id
+
+LEFT JOIN 
+        (
+        SELECT login_id, email from vicky.victoriousaccounts WHERE email NOT LIKE '%api'
+        UNION
+        SELECT login_id, email from vicky.facebookaccounts WHERE email NOT LIKE '%api'
+        ) email
+ON u.parent_login_id=email.login_id
+
+LEFT JOIN vicky.apps
+ON A.app_id=apps.id
+
+GROUP BY 1,2,3,4,5,6,7
+ORDER BY 2,5,4
