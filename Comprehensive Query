@@ -31,16 +31,13 @@ create table public.comp_registration as
 (
 SELECT 
 app,
-apps.name as SQL_app_name, 
 cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date,
 os,
 COUNT(*) AS registrations,
 COUNT(DISTINCT event.user_id) AS unique_registered_users 
 FROM event as event
-INNER JOIN vicky.apps
-ON event.app=apps.redshift_app_name
-WHERE event."kingdom" LIKE 'registration'
-GROUP BY 1,2,3,4
+WHERE event."kingdom" = 'registration'
+GROUP BY 1,2,3
 );
 
 
@@ -81,7 +78,7 @@ SELECT app, cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date
 
 FROM event event 
 
-WHERE event."kingdom" LIKE 'engagement'
+WHERE event."kingdom" = 'engagement'
 GROUP BY 1,2,3
 );
 
@@ -98,8 +95,8 @@ SELECT app
 , count(distinct case when event."class"='video' then user_id else null end) as video_viewers
 FROM event event  
 
-WHERE event."kingdom" LIKE 'view'
-and event."phylum" LIKE 'start'
+WHERE event."kingdom" = 'view'
+and event."phylum" = 'start'
 GROUP BY 1,2,3
 );
 
@@ -114,8 +111,8 @@ SELECT app, cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date
 
 FROM event event  
 
-WHERE event."kingdom" LIKE 'tile_view'
-and event."phylum" LIKE 'start'
+WHERE event."kingdom" = 'tile_view'
+and event."phylum" = 'start'
 GROUP BY 1,2,3
 );
 
@@ -151,8 +148,8 @@ os
 ,COUNT(DISTINCT event.user_id) AS session_starters,
 SUM(float1) AS time_in_msec 
 FROM event event
-WHERE event."kingdom" LIKE 'session' 
-AND event."phylum" LIKE 'session_end'
+WHERE event."kingdom" = 'session' 
+AND event."phylum" = 'session_end'
 AND event.float1>=0
 AND event.float1<=86400000
 GROUP BY 1,2,3
@@ -169,8 +166,8 @@ SELECT app, cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date
 
 FROM event  
 
-WHERE event."kingdom" LIKE 'engagement'
-and event."phylum" LIKE 'repost'
+WHERE event."kingdom" = 'engagement'
+and event."phylum" = 'repost'
 GROUP BY 1,2,3
 );
 
@@ -392,4 +389,5 @@ and C.os=l.os
 and C.date>=l.launch_date
 WHERE l.app_status in ('live','inactive')
 AND (l.deactivation_date is null OR C.date<l.deactivation_date)
+AND C.date<getdate()::date
 ORDER BY 1,2,3,4;
