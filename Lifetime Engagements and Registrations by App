@@ -1,0 +1,91 @@
+
+select
+creations.app_id,
+apps.name,
+creations.creations,
+comments.comments,
+likes.likes,
+poll_responses.poll_responses,
+EBs.EBs,
+reposts.reposts,
+(comments+likes+poll_responses+EBs+reposts) as engagements,
+users.users as registered_users
+from
+(
+select
+app_id, count(*) as creations from sequences
+WHERE is_complete='yes' AND is_deleted='no' AND is_moderated='no' ##AND category NOT LIKE '%repost%'
+group by 1
+order by 2 desc
+) creations
+LEFT JOIN
+(
+select
+s.app_id,
+count(*) as comments
+from comments c
+join sequences s
+on c.sequence_id = s.id
+group by 1
+order by 2 desc
+) comments
+on creations.app_id = comments.app_id
+LEFT JOIN
+(
+select
+s.app_id,
+count(*) as likes
+from sequencelikes sl
+join sequences s
+on sl.sequence_id = s.id
+group by 1
+order by 2 desc
+) likes
+on creations.app_id = likes.app_id
+LEFT JOIN
+(
+select
+s.app_id,
+count(*) as EBs
+from sequencevotes sl
+join sequences s
+on sl.sequence_id = s.id
+group by 1
+order by 2 desc
+) EBs
+on creations.app_id = EBs.app_id
+LEFT JOIN
+(
+select
+s.app_id,
+count(*) as poll_responses
+from statinteractions sl
+join statsequences s
+on sl.statsequence_id = s.id
+group by 1
+order by 2 desc
+) poll_responses
+on creations.app_id = poll_responses.app_id
+LEFT JOIN
+(
+select
+app_id, count(*) as reposts from sequences
+WHERE is_complete='yes' AND is_deleted='no' AND is_moderated='no' AND category LIKE '%repost%'
+group by 1
+order by 2 desc
+) reposts
+on creations.app_id = reposts.app_id
+LEFT JOIN
+(
+select
+app_id,
+count(*) as users
+from users
+group by 1
+) users
+on creations.app_id = users.app_id
+LEFT JOIN
+apps
+on apps.id = creations.app_id
+group by 1,2
+order by 1;
