@@ -19,17 +19,17 @@ order by 1,3,4
 
 
 update public.launch_date
-set launch_date = '2014-09-10 00:00:00', app_status='inactive', deactivation_date='2015-12-31 11:59:59'
+set launch_date = '2014-09-10 00:00:00', app_status='inactive', deactivation_date='2015-12-31 23:59:59'
 where app in ('jesslizama');
 
 
 update public.launch_date
-set launch_date = '2014-10-13 00:00:00', app_status='inactive', deactivation_date='2015-12-31 11:59:59'
+set launch_date = '2014-10-13 00:00:00', app_status='inactive', deactivation_date='2015-12-31 23:59:59'
 where app in ('pwnisher');
 
 
 update public.launch_date
-set launch_date = '2014-11-04 00:00:00', app_status='inactive', deactivation_date='2015-12-31 11:59:59'
+set launch_date = '2014-11-04 00:00:00', app_status='inactive', deactivation_date='2015-12-31 23:59:59'
 where app in ('gtchannel');
 
 
@@ -162,7 +162,7 @@ where app in ('hiphollywood');
 
 
 update public.launch_date
-set launch_date = '2015-09-18 00:00:00', app_status='inactive', deactivation_date='2015-12-31 11:59:59'
+set launch_date = '2015-09-18 00:00:00', app_status='inactive', deactivation_date='2015-12-31 23:59:59'
 where app in ('dangmattsmit');
 
 
@@ -181,7 +181,7 @@ set launch_date = '2015-09-24 00:00:00', app_status='live'
 where app in ('lelepons','wongfu','freestylefb');
 
 update public.launch_date
-set launch_date = '2015-09-24 00:00:00', app_status='inactive', deactivation_date='2015-12-31 11:59:59'
+set launch_date = '2015-09-24 00:00:00', app_status='inactive', deactivation_date='2015-12-31 23:59:59'
 where app in ('thehartland');
 
 update public.launch_date
@@ -212,7 +212,7 @@ set launch_date = '2015-10-05 00:00:00', app_status='live'
 where app in ('annoyingoran');
 
 update public.launch_date
-set launch_date = '2015-10-06 00:00:00', app_status='live'
+set launch_date = '2015-10-06 00:00:00', app_status='inactive', deactivation_date= '2016-02-25 23:59:59'
 where app in ('stickytech');
 
 update public.launch_date
@@ -316,12 +316,39 @@ UPDATE public.launch_date
 SET launch_date = '2016-02-11 00:00:00', app_status='live'
 WHERE app in ('tensecondson');
 
+UPDATE public.launch_date
+SET launch_date = '2015-06-01 00:00:00', app_status='inactive', deactivation_date='2015-12-31 23:59:59'
+WHERE app in ('linustechtips');
+
+UPDATE public.launch_date
+SET launch_date = '2016-02-19 00:00:00', app_status='live'
+WHERE app in ('belparamenin');
+
+UPDATE public.launch_date
+SET launch_date = '2016-02-24 00:00:00', app_status='live'
+WHERE app in ('runteldatmar');
+
+UPDATE public.launch_date
+SET launch_date = '2016-02-25 00:00:00', app_status='live'
+WHERE app in ('annatodd-');
+
+UPDATE public.launch_date
+SET launch_date = '2016-03-03 00:00:00', app_status='live'
+WHERE app in ('sandycoben');
+
+UPDATE public.launch_date
+SET launch_date = '2016-03-07 00:00:00', app_status='live'
+WHERE app in ('tgn');
+
+UPDATE public.launch_date
+SET launch_date = '2016-03-08 00:00:00', app_status='live'
+WHERE app in ('wissen2go');
+
 select app,datediff('day',launch_date,'2015-08-31') from public.launch_date
 order by 1,2;
 
-
 select * from public.launch_date
-order by 1,2;
+order by 1,2,3;
 
 
 select max(event_datetime) from public.event;
