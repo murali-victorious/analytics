@@ -1,4 +1,4 @@
--- Metrics by App and Month from SQL (Registered Users, Creations including reposts, Engagements)
+-- Metrics by App and Month from Redshift-SQL (Registered Users, Creations including reposts, Engagements)
 
 select
 creations.month,
