@@ -3,11 +3,14 @@ select
 A.app,
 U.id,
 A.user_map_tag,
+A.app_ver,
+A.os,
 U.name,
 A.date,
 A.sessions,
 A.session_starters,
-A.time_in_msec
+A.time_in_msec,
+B.engagements
 from
 (
 SELECT 
@@ -15,6 +18,7 @@ app,
 user_map_tag,
 cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date,
 os
+,app_ver
 ,COUNT(*) AS sessions
 ,COUNT(DISTINCT event.user_id) AS session_starters,
 SUM(float1) AS time_in_msec 
@@ -30,11 +34,33 @@ where app in ('victorians')
 and (kingdom like '%engagement%' or kingdom like '%creation%')
 )) or group_tag is null or group_tag = '')
 and user_map_tag like 'ut%'
-GROUP BY 1,2,3,4
+GROUP BY 1,2,3,4,5
 ) A
+LEFT JOIN
+(
+SELECT 
+app,
+user_map_tag,
+cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date,
+os
+,app_ver
+,COUNT(*) AS engagements
+FROM event event
+WHERE event."kingdom" LIKE 'engagement'
+AND event."phylum" NOT LIKE 'emotive_ballistic'
+AND app in ('victorians')
+and user_map_tag like 'ut%'
+GROUP BY 1,2,3,4,5
+) B
+on A.user_map_tag = B.user_map_tag
+and A.date = B.date
+and A.os = B.os
+and A.app_ver = B.app_ver
 join vicky.users U
 on A.user_map_tag = ('ut'|| U.id)
-order by 2,5
+where ((A.os = 'iOS' and cast(left(A.app_ver,(position('.' in A.app_ver))-1) as int)>=4) OR (A.os='Android'))
+and (A.app_ver is not null OR A.app_ver <> '' or left(A.app_ver,1) <>'a')
+order by 2,6
 )
 UNION
 (
@@ -42,11 +68,14 @@ select
 A.app,
 UU.id,
 A.user_map_tag,
+A.app_ver,
+A.os,
 UU.name,
 A.date,
 A.sessions,
 A.session_starters,
-A.time_in_msec
+A.time_in_msec,
+B.engagements
 from
 (
 SELECT 
@@ -54,6 +83,7 @@ app,
 user_map_tag,
 cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date,
 os
+,app_ver
 ,COUNT(*) AS sessions
 ,COUNT(DISTINCT event.user_id) AS session_starters,
 SUM(float1) AS time_in_msec 
@@ -69,11 +99,33 @@ where app in ('victorians')
 and (kingdom like '%engagement%' or kingdom like '%creation%')
 )) or group_tag is null or group_tag = '')
 and user_map_tag like 'dt%'
-GROUP BY 1,2,3,4
+GROUP BY 1,2,3,4,5
 ) A
+LEFT JOIN
+(
+SELECT 
+app,
+user_map_tag,
+cast(TO_CHAR(local_datetime::DATE, 'YYYY-MM-DD') as date) as date,
+os
+,app_ver
+,COUNT(*) AS engagements
+FROM event event
+WHERE event."kingdom" LIKE 'engagement'
+AND event."phylum" NOT LIKE 'emotive_ballistic'
+AND app in ('victorians')
+and user_map_tag like 'dt%'
+GROUP BY 1,2,3,4,5
+) B
+on A.user_map_tag = B.user_map_tag
+and A.date = B.date
+and A.os = B.os
+and A.app_ver = B.app_ver
 join vicky.device_login U
 on A.user_map_tag = ('dt'|| U.device_id)
 join vicky.users UU
 on U.login_id = UU.parent_login_id
-order by 2,5
+where ((A.os = 'iOS' and cast(left(A.app_ver,(position('.' in A.app_ver))-1) as int)>=4) OR (A.os='Android'))
+and (A.app_ver is not null OR A.app_ver <> '' or left(A.app_ver,1) <>'a')
+order by 2,6
 );
