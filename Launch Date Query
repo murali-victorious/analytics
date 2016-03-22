@@ -344,6 +344,14 @@ UPDATE public.launch_date
 SET launch_date = '2016-03-08 00:00:00', app_status='live'
 WHERE app in ('wissen2go');
 
+UPDATE public.launch_date
+SET launch_date = '2016-03-14 00:00:00', app_status='live'
+WHERE app in ('jeapp');
+
+UPDATE public.launch_date
+SET launch_date = '2016-03-15 00:00:00', app_status='live'
+WHERE app in ('angelmerino-');
+
 select app,datediff('day',launch_date,'2015-08-31') from public.launch_date
 order by 1,2;
 
