@@ -6,6 +6,7 @@ create table public.launch_date as
 select
 app,
 apps.name as SQL_app_name,
+apps.id as app_id,
 os,
 'not_live' as app_status,
 date_trunc('day',min(event_datetime)) as launch_date
@@ -333,7 +334,7 @@ SET launch_date = '2016-02-25 00:00:00', app_status='live'
 WHERE app in ('annatodd-');
 
 UPDATE public.launch_date
-SET launch_date = '2016-03-03 00:00:00', app_status='live'
+SET launch_date = '2016-03-04 00:00:00', app_status='live'
 WHERE app in ('sandycoben');
 
 UPDATE public.launch_date
@@ -351,6 +352,22 @@ WHERE app in ('jeapp');
 UPDATE public.launch_date
 SET launch_date = '2016-03-15 00:00:00', app_status='live'
 WHERE app in ('angelmerino-');
+
+UPDATE public.launch_date
+SET launch_date = '2016-03-22 00:00:00', app_status='live'
+WHERE app in ('xmen-');
+
+UPDATE public.launch_date
+SET launch_date = '2016-03-24 00:00:00', app_status='live'
+WHERE app in ('amberscloset');
+
+UPDATE public.launch_date
+SET launch_date = '2016-03-29 00:00:00', app_status='live'
+WHERE app in ('funnyplox-');
+
+UPDATE public.launch_date
+SET launch_date = '2016-04-06 00:00:00', app_status='live'
+WHERE app in ('saldeflor');
 
 select app,datediff('day',launch_date,'2015-08-31') from public.launch_date
 order by 1,2;
