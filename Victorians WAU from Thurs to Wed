@@ -1,0 +1,30 @@
+SELECT dau.app, 
+dau.os, 
+dau.week_ending_in, 
+dau.wau,
+weekly_sessions, 
+weekly_time_msec
+FROM 
+    (
+    SELECT app
+    , os
+    , date_trunc('week', dateadd('day',4,dau.local_datetime))+2 as week_ending_in, COUNT(distinct user_id) as WAU
+    FROM dau
+    WHERE app='victorians'
+    GROUP BY 1,2,3
+    ORDER BY 1,2,3
+    ) dau
+LEFT JOIN 
+(
+SELECT app,
+os,
+date_trunc('week', dateadd('day',4,date))+2 as week_ending_in,
+SUM(sessions) as weekly_sessions, 
+SUM(time_in_msec) as weekly_time_msec
+FROM public.comp_timeinapp 
+WHERE app='victorians'
+GROUP BY 1,2,3
+) as H
+ON dau.app=H.app
+AND dau.os=H.os 
+AND dau.week_ending_in=H.week_ending_in
