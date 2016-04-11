@@ -1,0 +1,25 @@
+Create table public.user_level AS 
+(
+SELECT distinct e.app, i.os, e.user_id, e.user_map_tag, e.level, e.XP
+FROM 
+        (
+        SELECT e.app, user_id, user_map_tag, max(nvl(cast(class as int),1)) as level, SUM(float1) as XP
+        FROM event e
+        WHERE kingdom='fan_club'
+        GROUP BY 1,2,3
+        ORDER BY 1,2,3
+        ) e
+LEFT JOIN 
+        (
+        SELECT distinct app, os, user_id, user_map_tag
+        FROM
+                (
+                SELECT ROW_NUMBER() OVER(PARTITION BY app, user_id ORDER BY event_datetime desc) AS row_num, *
+                FROM dau
+                ) 
+        WHERE row_num=1
+        ) i
+ON e.app=i.app
+AND e.user_id=i.user_id
+ORDER BY 1,2,3
+) 
