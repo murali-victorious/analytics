@@ -688,3 +688,96 @@ GROUP BY 1,2,3,4
 ORDER BY 1,2,3,4
 )
 ;
+--modified comprehensive query using vic comp tables
+SELECT
+
+C.app,
+C."date",
+C.os,
+
+A.installs,
+B.registrations,
+B.unique_registered_Users,
+C.dau,
+D.engagements,
+D.engagers,
+E.views,
+E.viewers,
+F.tile_views,
+F.tile_viewers,
+G.creations,
+G.creators,
+J.reposts,
+J.reposters,
+E.video_views,
+E.video_viewers,
+H.sessions,
+H.session_starters,
+H.time_in_msec,
+I.start_count,
+I.D1_Retention,
+I.D2_Retention,
+I.D3_Retention,
+I.D4_Retention,
+I.D5_Retention,
+I.D6_Retention,
+I.D7_Retention,
+I.D8_Retention,
+I.D9_Retention,
+I.D10_Retention,
+I.D11_Retention,
+I.D12_Retention,
+I.D13_Retention,
+I.D14_Retention,
+I.D30_Retention,
+I.D60_Retention,
+I.D90_Retention
+
+FROM
+
+public.vic_comp_dau C
+LEFT JOIN vic_comp_install A
+ON C.app=A.app
+AND C.os=A.os
+AND C.date=A.date
+LEFT join public.vic_comp_registration B
+on C.date = B.date
+and C.app = B.app
+and C.os = B.os
+left join public.vic_comp_engagement D
+ON C.app = D.app
+AND C.date = D.date
+AND C.os = D.os
+left join public.vic_comp_view E
+ON C.app = E.app
+AND C.date = E.date
+AND C.os = E.os
+left join public.vic_comp_tileview F
+ON C.app = F.app
+AND C.date = F.date
+AND C.os = F.os
+left join public.vic_comp_creation G
+ON C.app = G.app
+AND C.date = G.date
+AND C.os = G.os
+left join public.vic_comp_timeinapp H
+ON C.app = H.app
+AND C.date = H.date
+AND C.os = H.os
+left join public.vic_comp_repost J
+ON C.app = J.app
+AND C.date = J.date
+AND C.os = J.os
+left join public.vic_comp_retention I
+ON C.app = I.app
+AND C.date = I.first_date
+AND C.os = I.os
+LEFT JOIN
+public.launch_date l
+on C.app=l.app
+and C.os=l.os
+and C.date>=l.launch_date
+WHERE l.app_status in ('live','inactive')
+AND (l.deactivation_date is null OR C.date<l.deactivation_date)
+AND C.date<getdate()::date
+ORDER BY 1,2,3,4
