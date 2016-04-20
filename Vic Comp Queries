@@ -1,0 +1,493 @@
+--Install
+
+CREATE TABLE public.viccomp_install as
+(
+SELECT 
+A.app
+, apps.name as SQL_app_name
+, CAST(to_CHAR(local_datetime::date, 'YYYY-MM-DD') as date) as date
+, A.os
+, datediff(day,L.launch_date, CAST(TO_CHAR(local_datetime::date,'YYYY-MM-DD') as date)) as days_since_launch
+, COUNT(DISTINCT user_map_tag) as installs
+FROM 
+        (
+        SELECT ROW_NUMBER() OVER(PARTITION BY app, os, user_map_tag ORDER BY event_datetime) as row_num
+        , *
+        FROM vic_install
+        ) A
+JOIN public.launch_date L
+ON A.os=L.os
+AND A.app=L.app
+AND local_datetime>=L.launch_date
+INNER JOIN vicky.apps
+ON A.app=apps.redshift_app_name
+WHERE row_num = 1
+AND local_Datetime>='2016-04-01 00:00:00'
+AND app_status in ('live','inactive')
+GROUP BY 1,2,3,4,5
+ORDER BY 1,2,3,4,5
+)
+;
+--DAU, Use this as the main table for comp query and left join this table to all other tables
+create table public.viccomp_dau as
+(
+SELECT 
+dau.app 
+, l.SQL_app_name
+, cast(TO_CHAR(dau.local_datetime::date, 'YYYY-MM-DD') as date) as date
+, dau.os
+, datediff(day,L.launch_date, CAST(TO_CHAR(dau.local_datetime::date,'YYYY-MM-DD') as date)) as days_since_launch
+, COUNT(DISTINCT dau.user_map_tag) as dau 
+FROM 
+        (
+        SELECT ROW_NUMBER() OVER(PARTITION BY app, os, user_map_tag, TO_CHAR(local_datetime::date, 'YYYY-MM-DD') ORDER BY event_datetime) as row_num
+        , *
+        FROM vic_dau
+        ) dau
+LEFT JOIN vic_install i
+on dau.app = i.app
+and dau.user_map_tag = i.user_map_tag
+and dau.event_datetime>=i.event_datetime
+JOIN launch_date l 
+on dau.app=l.app
+AND dau.os=l.os
+WHERE row_num = 1
+AND l.app_status IN ('live','inactive')
+AND dau.local_datetime>='2016-04-01 00:00:00'
+GROUP BY 1,2,3,4,5
+);
+
+/*
+--retention using user_map_tag
+
+CREATE table public.viccomp_retention AS 
+(
+SELECT app
+, CAST(first_date as date) as first_date
+, os
+, MAX(CASE WHEN daysafterinstall = 0 THEN start_count END) as start_count
+, MAX(CASE WHEN daysafterinstall = 1 THEN return_count END) as D1_retention
+, MAX(CASE WHEN daysafterinstall = 2 THEN return_count END) as D2_retention
+, MAX(CASE WHEN daysafterinstall = 3 THEN return_count END) as D3_retention
+, MAX(CASE WHEN daysafterinstall = 4 THEN return_count END) as D4_retention
+, MAX(CASE WHEN daysafterinstall = 5 THEN return_count END) as D5_retention
+, MAX(CASE WHEN daysafterinstall = 6 THEN return_count END) as D6_retention
+, MAX(CASE WHEN daysafterinstall = 7 THEN return_count END) as D7_retention
+, MAX(CASE WHEN daysafterinstall = 8 THEN return_count END) as D8_retention
+, MAX(CASE WHEN daysafterinstall = 9 THEN return_count END) as D9_retention
+, MAX(CASE WHEN daysafterinstall = 10 THEN return_count END) as D10_retention
+, MAX(CASE WHEN daysafterinstall = 11 THEN return_count END) as D11_retention
+, MAX(CASE WHEN daysafterinstall = 12 THEN return_count END) as D12_retention
+, MAX(CASE WHEN daysafterinstall = 13 THEN return_count END) as D13_retention
+, MAX(CASE WHEN daysafterinstall = 14 THEN return_count END) as D14_retention
+, MAX(CASE WHEN daysafterinstall = 30 THEN return_count END) as D30_retention
+, MAX(CASE WHEN daysafterinstall = 60 THEN return_count END) as D60_retention
+, MAX(CASE WHEN daysafterinstall = 90 THEN return_count END) as D90_retention
+
+FROM 
+        (
+        SELECT start_count.app
+        , start_count.os
+        , to_char(start_count.first_date, 'YYYY-MM-DD') as first_date
+        , return_count.nday AS daysafterinstall
+        , start_count.start_count
+        , return_count.return_count
+        FROM 
+                (
+                SELECT app, os, first_date, COUNT(distinct user_map_tag) as start_count
+                FROM 
+                        (
+                        SELECT app, os, start_count.user_map_tag, CAST(TO_CHAR(local_datetime::date, 'YYYY-MM-DD') as date) as first_date
+                        FROM 
+                        
+                                (
+                                SELECT * FROM
+                                        (
+                                        SELECT ROW_NUMBER() OVER(PARTITION BY app, os, user_map_tag ORDER BY event_datetime) as row_num, *
+                                        FROM vic_install
+                                        ) installs_with_row_num
+                                WHERE row_num = 1
+                                --AND local_datetime>='2016-04-01 00:00:00'
+                                ) as start_count
+                        WHERE 1=1 
+                        ) a
+                GROUP BY 1,2,3
+                ) as start_count
+        LEFT JOIN 
+                (
+                SELECT r.app
+                , r.os
+                , r.first_date
+                , r.nday
+                , COUNT(distinct r.user_map_tag) as return_count
+                FROM 
+                        (
+                        SELECT starters.app
+                        , starters.os
+                        , starters.user_map_tag
+                        , starters.first_date
+                        , returners.return_date
+                        , datediff('day',first_date, return_date) as nday
+                        FROM
+                                (
+                                SELECT app, os, a.user_map_tag, local_datetime::date as first_date
+                                FROM 
+                                        (
+                                        SELECT * FROM  
+                                                (
+                                                SELECT ROW_NUMBER() OVER(PARTITION BY app, os, user_map_tag ORDER BY event_datetime) as row_num, *
+                                                FROM vic_install
+                                                ) installs_row_num
+                                        WHERE row_num = 1
+                                        AND local_datetime>='2016-04-01 00:00:00'
+                                        ) a
+                                WHERE 1=1
+                                ) starters
+                                INNER JOIN 
+                                (
+                                SELECT DISTINCT app, os, user_map_tag, local_datetime::date as return_date
+                                FROM vic_dau
+                                WHERE local_datetime::date < GETDATE()::date
+                                AND local_datetime>='2016-04-01 00:00:00'
+                                ) returners 
+                                ON starters.app=returners.app
+                                AND starters.os=returners.os
+                                AND starters.user_map_tag=returners.user_map_tag
+                                AND returners.return_date>=starters.first_date
+                        ) r
+                GROUP BY 1,2,3,4
+                ) return_count
+        ON start_count.app = return_count.app
+        AND start_count.os = return_count.os
+        and start_count.first_date = return_count.first_date
+) 
+GROUP BY 1,2,3
+ORDER BY 1,2,3
+) 
+*/
+--;
+--drop table public.viccomp_retention ;
+
+--retention using device_tag
+
+CREATE table public.viccomp_retention AS 
+(
+SELECT app
+, CAST(first_date as date) as first_date
+, os
+, MAX(CASE WHEN daysafterinstall = 0 THEN start_count END) as start_count
+, MAX(CASE WHEN daysafterinstall = 1 THEN return_count END) as D1_retention
+, MAX(CASE WHEN daysafterinstall = 2 THEN return_count END) as D2_retention
+, MAX(CASE WHEN daysafterinstall = 3 THEN return_count END) as D3_retention
+, MAX(CASE WHEN daysafterinstall = 4 THEN return_count END) as D4_retention
+, MAX(CASE WHEN daysafterinstall = 5 THEN return_count END) as D5_retention
+, MAX(CASE WHEN daysafterinstall = 6 THEN return_count END) as D6_retention
+, MAX(CASE WHEN daysafterinstall = 7 THEN return_count END) as D7_retention
+, MAX(CASE WHEN daysafterinstall = 8 THEN return_count END) as D8_retention
+, MAX(CASE WHEN daysafterinstall = 9 THEN return_count END) as D9_retention
+, MAX(CASE WHEN daysafterinstall = 10 THEN return_count END) as D10_retention
+, MAX(CASE WHEN daysafterinstall = 11 THEN return_count END) as D11_retention
+, MAX(CASE WHEN daysafterinstall = 12 THEN return_count END) as D12_retention
+, MAX(CASE WHEN daysafterinstall = 13 THEN return_count END) as D13_retention
+, MAX(CASE WHEN daysafterinstall = 14 THEN return_count END) as D14_retention
+, MAX(CASE WHEN daysafterinstall = 30 THEN return_count END) as D30_retention
+, MAX(CASE WHEN daysafterinstall = 60 THEN return_count END) as D60_retention
+, MAX(CASE WHEN daysafterinstall = 90 THEN return_count END) as D90_retention
+
+FROM 
+        (
+        SELECT start_count.app
+        , start_count.os
+        , to_char(start_count.first_date, 'YYYY-MM-DD') as first_date
+        , return_count.nday AS daysafterinstall
+        , start_count.start_count
+        , return_count.return_count
+        FROM 
+                (
+                SELECT app, os, first_date, COUNT(distinct device_tag) as start_count
+                FROM 
+                        (
+                        SELECT app, os, start_count.device_tag, CAST(TO_CHAR(local_datetime::date, 'YYYY-MM-DD') as date) as first_date
+                        FROM 
+                        
+                                (
+                                SELECT * FROM
+                                        (
+                                        SELECT ROW_NUMBER() OVER(PARTITION BY app, os, device_tag ORDER BY event_datetime) as row_num, *
+                                        FROM vic_install
+                                        ) installs_with_row_num
+                                WHERE row_num = 1
+                                --AND local_datetime>='2016-04-01 00:00:00'
+                                ) as start_count
+                        WHERE 1=1 
+                        ) a
+                GROUP BY 1,2,3
+                ) as start_count
+        LEFT JOIN 
+                (
+                SELECT r.app
+                , r.os
+                , r.first_date
+                , r.nday
+                , COUNT(distinct r.device_tag) as return_count
+                FROM 
+                        (
+                        SELECT starters.app
+                        , starters.os
+                        , starters.device_tag
+                        , starters.first_date
+                        , returners.return_date
+                        , datediff('day',first_date, return_date) as nday
+                        FROM
+                                (
+                                SELECT app, os, a.device_tag, local_datetime::date as first_date
+                                FROM 
+                                        (
+                                        SELECT * FROM  
+                                                (
+                                                SELECT ROW_NUMBER() OVER(PARTITION BY app, os, device_tag ORDER BY event_datetime) as row_num, *
+                                                FROM vic_install
+                                                ) installs_row_num
+                                        WHERE row_num = 1
+                                        AND local_datetime>='2016-04-01 00:00:00'
+                                        ) a
+                                WHERE 1=1
+                                ) starters
+                                INNER JOIN 
+                                (
+                                SELECT DISTINCT app, os, device_tag, local_datetime::date as return_date
+                                FROM vic_dau
+                                WHERE local_datetime::date < GETDATE()::date
+                                AND local_datetime>='2016-04-01 00:00:00'
+                                ) returners 
+                                ON starters.app=returners.app
+                                AND starters.os=returners.os
+                                AND starters.device_tag=returners.device_tag
+                                AND returners.return_date>=starters.first_date
+                        ) r
+                GROUP BY 1,2,3,4
+                ) return_count
+        ON start_count.app = return_count.app
+        AND start_count.os = return_count.os
+        and start_count.first_date = return_count.first_date
+) 
+GROUP BY 1,2,3
+ORDER BY 1,2,3
+) 
+
+;
+--Registrations
+
+CREATE TABLE public.viccomp_registration as
+(
+SELECT app
+, CAST(TO_CHAR(local_datetime::date, 'YYYY-MM-DD') as date) as date
+, os
+, COUNT(*) as registrations
+, COUNT(distinct user_map_tag) as unique_registered_users
+FROM vic_event
+WHERE kingdom='registration'
+AND local_datetime>='2016-04-01 00:00:00'
+GROUP BY 1,2,3
+ORDER BY 1,2,3
+)
+;
+
+--Engagements
+create table public.viccomp_engagements AS
+(
+SELECT app
+, CAST(TO_CHAR(local_datetime::date, 'YYYY-MM-DD') as date) as date
+, os
+, COUNT(*) as engagements
+, COUNT(distinct user_map_tag) as engagers
+FROM vic_event 
+WHERE kingdom='engagement'
+AND local_datetime>='2016-04-01 00:00:00'
+GROUP BY 1,2,3
+ORDER BY 1,2,3
+);
+
+--Views and Video Views
+
+Create table public.viccomp_view AS
+(
+SELECT app
+, CAST(TO_CHAR(local_datetime::date, 'YYYY-MM-DD') as date) as date
+, os
+, COUNT(*) as views
+, COUNT(distinct user_map_tag) as viewers
+, SUM(CASE WHEN class='video' THEN 1 ELSE 0 END) as video_views
+, COUNT(DISTINCT CASE WHEN class='video' THEN user_map_tag ELSE null END) as video_viewers
+FROM vic_event
+WHERE kingdom='view'
+AND phylum='start'
+AND local_datetime>='2016-04-01 00:00:00'
+GROUP BY 1,2,3
+ORDER BY 1,2,3
+)
+;
+
+--Tile views
+create table public.viccomp_tileview AS
+(
+SELECT app
+, CAST(TO_CHAR(local_datetime::date, 'YYYY-MM-DD') as date) as date
+, os
+, COUNT(*) as tile_views
+, COUNT(distinct user_map_tag) as tile_viewers
+FROM vic_event
+WHERE kingdom='tile_view'
+AND phylum='start'
+AND local_datetime>='2016-04-01 00:00:00'
+GROUP BY 1,2,3
+ORDER BY 1,2,3
+) 
+;
+
+
+--Creations
+create table public.viccomp_creation as 
+(
+SELECT app
+, CAST(TO_CHAR(local_datetime::date, 'YYYY-MM-DD') as date) as date
+, os
+, COUNT(*) as creations
+, COUNT(distinct user_map_tag) as creators
+FROM vic_event
+WHERE kingdom LIKE '%creation%'
+AND local_datetime>='2016-04-01 00:00:00'
+GROUP BY 1,2,3
+)
+;
+
+--Time in App
+
+CREATE table public.viccomp_timeinapp AS 
+(
+SELECT app
+, CAST(TO_CHAR(local_datetime::date, 'YYYY-MM-DD') as date) as date
+, os
+, COUNT(*) as sessions
+, COUNT(distinct user_map_tag) as session_starters
+, SUM(float1) as time_in_msec
+FROM vic_event
+WHERE kingdom='session'
+AND phylum='session_end'
+AND float1>=0
+AND float1<=86400000
+AND local_datetime>='2016-04-01 00:00:00'
+GROUP BY 1,2,3
+ORDER BY 1,2,3
+)
+;
+
+--Repost
+CREATE table public.viccomp_repost AS 
+(
+SELECT app
+, CAST(TO_CHAR(local_datetime::date, 'YYYY-MM-DD') as date) as date
+, os
+, COUNT(*) as reposts
+, COUNT(distinct user_map_tag) as reposters
+FROM vic_event
+WHERE kingdom='engagement'
+AND phylum='repost'
+AND local_datetime>='2016-04-01 00:00:00'
+GROUP BY 1,2,3
+)
+;
+
+
+SELECT
+
+C.app,
+C."date",
+C.os,
+
+A.installs,
+B.registrations,
+B.unique_registered_Users,
+C.dau,
+D.engagements,
+D.engagers,
+E.views,
+E.viewers,
+F.tile_views,
+F.tile_viewers,
+G.creations,
+G.creators,
+J.reposts,
+J.reposters,
+E.video_views,
+E.video_viewers,
+H.sessions,
+H.session_starters,
+H.time_in_msec,
+I.start_count,
+I.D1_Retention,
+I.D2_Retention,
+I.D3_Retention,
+I.D4_Retention,
+I.D5_Retention,
+I.D6_Retention,
+I.D7_Retention,
+I.D8_Retention,
+I.D9_Retention,
+I.D10_Retention,
+I.D11_Retention,
+I.D12_Retention,
+I.D13_Retention,
+I.D14_Retention,
+I.D30_Retention,
+I.D60_Retention,
+I.D90_Retention
+
+FROM
+
+public.viccomp_dau C
+LEFT JOIN viccomp_install A
+ON C.app=A.app
+AND C.os=A.os
+AND C.date=A.date
+LEFT join public.viccomp_registration B
+on C.date = B.date
+and C.app = B.app
+and C.os = B.os
+left join public.viccomp_engagements D
+ON C.app = D.app
+AND C.date = D.date
+AND C.os = D.os
+left join public.viccomp_view E
+ON C.app = E.app
+AND C.date = E.date
+AND C.os = E.os
+left join public.viccomp_tileview F
+ON C.app = F.app
+AND C.date = F.date
+AND C.os = F.os
+left join public.viccomp_creation G
+ON C.app = G.app
+AND C.date = G.date
+AND C.os = G.os
+left join public.viccomp_timeinapp H
+ON C.app = H.app
+AND C.date = H.date
+AND C.os = H.os
+left join public.viccomp_repost J
+ON C.app = J.app
+AND C.date = J.date
+AND C.os = J.os
+left join public.viccomp_retention I
+ON C.app = I.app
+AND C.date = I.first_date
+AND C.os = I.os
+LEFT JOIN
+public.launch_date l
+on C.app=l.app
+and C.os=l.os
+and C.date>=l.launch_date
+WHERE l.app_status in ('live','inactive')
+AND (l.deactivation_date is null OR C.date<l.deactivation_date)
+AND C.date<getdate()::date
+ORDER BY 1,2,3,4
