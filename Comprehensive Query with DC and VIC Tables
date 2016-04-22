@@ -694,6 +694,7 @@ SELECT
 C.app,
 C."date",
 C.os,
+C.days_since_launch,
 
 A.installs,
 B.registrations,
