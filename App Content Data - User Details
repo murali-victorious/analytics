@@ -3,6 +3,7 @@ apps.id as app_id,
 apps.name as app_name,
 users.id as user_id,
 users.name as user_name,
+NVL(ul."level",1) as fan_club_level,
 CONVERT_TIMEZONE('UTC','US/Pacific',users.created_at) as created_at,
 nvl(emails.email,'') as email, 
 nvl(users.profile_location, '') as profile_location,
@@ -51,5 +52,8 @@ LEFT JOIN
 (SELECT user_id, COUNT(*) as likes from vicky.sequencelikes sl GROUP BY 1) as F
 ON users.id=F.user_id
 
+LEFT JOIN user_level ul
+ON ('ut'||users.id) = ul.user_map_tag
+
 WHERE users.access_level='api_user'
-GROUP BY 1,2,3,4,5,6,7
+GROUP BY 1,2,3,4,5,6,7,8
