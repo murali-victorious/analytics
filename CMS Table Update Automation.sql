@@ -1,7 +1,7 @@
 --Table feed the total active users number displayed in the CMS
 --delete data from 4/30
 DELETE FROM public.CMS_vic_total_AU
-WHERE date::date>'2016-04-30 00:00:00'
+WHERE date>='2016-04-30 00:00:00'
 ;
 
 --Adding data through 4/30 to tables
@@ -17,8 +17,8 @@ FROM
         WHERE kingdom='session'
         AND phylum='session_start'
         AND user_map_tag NOT LIKE 'dt%'
+        AND event_datetime>='2016-04-30 00:00:00'
+        AND event_datetime<getdate()::date
         ) 
 WHERE  row_num = 1
-AND convert_timezone('UTC','US/Pacific',event_Datetime)::date >='2016-04-30 00:00:00'
-AND event_datetime<getdate()::Date
 )
